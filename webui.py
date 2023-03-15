@@ -36,7 +36,7 @@ def predict(input):
 
 with gr.Blocks(css="#chat-box {white-space: pre-line;}") as demo:
     prompt = "输入你的内容..."
-    gr.Markdown("""<h2><center>ChatGLM Demo</center></h2>""")
+    gr.Markdown("""<h2><center>ChatGLM WebUI</center></h2>""")
     chatbot = gr.Chatbot(elem_id="chat-box")
     message = gr.Textbox(placeholder=prompt)
     state = gr.State()
