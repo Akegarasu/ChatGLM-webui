@@ -3,6 +3,7 @@ from transformers import AutoModel, AutoTokenizer
 from options import parser
 
 history = []
+readable_history = []
 cmd_opts = parser.parse_args()
 
 tokenizer = AutoTokenizer.from_pretrained(cmd_opts.model_path, trust_remote_code=True)
@@ -27,6 +28,20 @@ def prepare_model():
 prepare_model()
 
 
+def parse_codeblock(text):
+    lines = text.split("\n")
+    for i, line in enumerate(lines):
+        if "```" in line:
+            if line != "```":
+                lines[i] = f'<pre><code class="{lines[i][3:]}">'
+            else:
+                lines[i] = '</code></pre>'
+        else:
+            if i > 0:
+                lines[i] = "<br/>" + line.replace("<", "&lt;").replace(">", "&gt;")
+    return "".join(lines)
+
+
 def predict(query, max_length, top_p, temperature):
     global history
     output, history = model.chat(
@@ -35,13 +50,14 @@ def predict(query, max_length, top_p, temperature):
         top_p=top_p,
         temperature=temperature
     )
-    print(history)
-    return history
+    readable_history.append((query, parse_codeblock(output)))
+    print(output)
+    return readable_history
 
 
 def clear_history():
-    global history
     history.clear()
+    readable_history.clear()
     return gr.update(value=[])
 
 
