@@ -3,6 +3,7 @@
 
 py310/
 git/
+model/
 __pycache__/
 
 test.py
