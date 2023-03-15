@@ -5,8 +5,8 @@ from options import parser
 history = []
 cmd_opts = parser.parse_args()
 
-tokenizer = AutoTokenizer.from_pretrained("THUDM/chatglm-6b", trust_remote_code=True)
-model = AutoModel.from_pretrained("THUDM/chatglm-6b", trust_remote_code=True)
+tokenizer = AutoTokenizer.from_pretrained(cmd_opts.model_path, trust_remote_code=True)
+model = AutoModel.from_pretrained(cmd_opts.model_path, trust_remote_code=True)
 
 
 def prepare_model():

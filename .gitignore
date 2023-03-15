@@ -3,5 +3,6 @@
 
 py310/
 git/
+__pycache__/
 
 test.py
