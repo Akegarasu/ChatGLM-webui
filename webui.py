@@ -56,5 +56,5 @@ with gr.Blocks(css="#chat-box {white-space: pre-line;}") as demo:
 
 demo.queue().launch(
     server_port=cmd_opts.port,
-    share=True
+    share=cmd_opts.share
 )
