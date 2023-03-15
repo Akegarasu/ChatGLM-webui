@@ -25,7 +25,7 @@ def torch_gc():
             torch.cuda.ipc_collect()
 
 
-device = cpu if options.cmd_opts.use_cpu else get_optimal_device()
+device = cpu if options.cmd_opts.cpu else get_optimal_device()
 
 if not cuda_available:
     print("CUDA is not available, using cpu mode...")
