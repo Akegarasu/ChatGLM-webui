@@ -82,6 +82,7 @@ def create_ui():
 
 ui = create_ui()
 ui.queue().launch(
+    server_name="0.0.0.0" if cmd_opts.listen else None,
     server_port=cmd_opts.port,
     share=cmd_opts.share
 )

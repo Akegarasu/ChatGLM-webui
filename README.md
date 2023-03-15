@@ -28,6 +28,8 @@ python webui.py
 
 ### Args
 
+`--listen`: launch gradio with 0.0.0.0 as server name, allowing to respond to network requests
+
 `--port`: webui port
 
 `--share`: use gradio to share
