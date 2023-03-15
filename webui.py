@@ -27,34 +27,61 @@ def prepare_model():
 prepare_model()
 
 
-def predict(input):
+def predict(query, max_length, top_p, temperature):
     global history
-    output, history = model.chat(tokenizer, input, history)
+    output, history = model.chat(
+        tokenizer, query=query, history=history,
+        max_length=max_length,
+        top_p=top_p,
+        temperature=temperature
+    )
     print(history)
     return history
 
 
-with gr.Blocks(css="#chat-box {white-space: pre-line;}") as demo:
-    prompt = "输入你的内容..."
-    gr.Markdown("""<h2><center>ChatGLM WebUI</center></h2>""")
-    chatbot = gr.Chatbot(elem_id="chat-box")
-    message = gr.Textbox(placeholder=prompt)
-    state = gr.State()
-    with gr.Row():
-        submit = gr.Button("发送")
-        clear = gr.Button("清空对话")
+def clear_history():
+    global history
+    history.clear()
+    return gr.update(value=[])
 
 
-    def clear_history():
-        global history
-        history.clear()
-        return gr.update(value=[])
+def create_ui():
+    with gr.Blocks() as demo:
+        prompt = "输入你的内容..."
+        gr.Markdown("""<h2><center>ChatGLM WebUI</center></h2>""")
+        with gr.Row():
+            max_length = gr.Slider(minimum=4, maximum=4096, step=4, label='Max Length', value=2048)
+            top_p = gr.Slider(minimum=0.01, maximum=1.0, step=0.01, label='Top P', value=0.7)
+            temperature = gr.Slider(minimum=0.01, maximum=1.0, step=0.01, label='Temperature', value=0.95)
+
+        chatbot = gr.Chatbot(elem_id="chat-box", show_label=False).style(height=800)
+        message = gr.Textbox(placeholder=prompt, show_label=False)
+
+        with gr.Row():
+            submit = gr.Button("发送")
+            clear_input = gr.Button("清空文本框")
+
+        with gr.Row():
+            clear = gr.Button("清空对话（上下文）")
+
+        submit.click(predict,
+                     inputs=[
+                         message,
+                         max_length,
+                         top_p,
+                         temperature
+                     ],
+                     outputs=[
+                         chatbot
+                     ])
+        clear.click(clear_history, outputs=[chatbot])
+        clear_input.click(lambda x: "", inputs=[message], outputs=[message])
+
+    return demo
 
 
-    submit.click(predict, inputs=[message], outputs=[chatbot])
-    clear.click(clear_history, outputs=[chatbot])
-
-demo.queue().launch(
+ui = create_ui()
+ui.queue().launch(
     server_port=cmd_opts.port,
     share=cmd_opts.share
 )
