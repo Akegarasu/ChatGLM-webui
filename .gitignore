@@ -1,4 +1,7 @@
 .idea
 .vscode
 
+py310/
+git/
+
 test.py
