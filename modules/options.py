@@ -8,3 +8,6 @@ parser.add_argument("--precision", type=str, help="evaluate at this precision", 
 parser.add_argument("--listen", action='store_true', help="launch gradio with 0.0.0.0 as server name, allowing to respond to network requests")
 parser.add_argument("--cpu", action='store_true', help="use cpu")
 parser.add_argument("--share", action='store_true', help="use gradio share")
+parser.add_argument("--device-id", type=str, help="select the default CUDA device to use", default=None)
+
+cmd_opts = parser.parse_args()

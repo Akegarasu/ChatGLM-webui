@@ -4,11 +4,12 @@ import time
 
 import gradio as gr
 from transformers import AutoModel, AutoTokenizer
-from options import parser
+
+from modules.device import torch_gc
+from modules.options import cmd_opts
 
 history = []
 readable_history = []
-cmd_opts = parser.parse_args()
 
 tokenizer = AutoTokenizer.from_pretrained(cmd_opts.model_path, trust_remote_code=True)
 model = AutoModel.from_pretrained(cmd_opts.model_path, trust_remote_code=True)
@@ -65,6 +66,7 @@ def predict(query, max_length, top_p, temperature):
     )
     readable_history.append((query, parse_codeblock(output)))
     print(output)
+    torch_gc()
     return readable_history
 
 
