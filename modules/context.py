@@ -56,6 +56,7 @@ class Context:
             print(e)
         self.history = _hist.copy()
         self.rh = _readable_hist.copy()
+        return self.rh
 
 
 ctx = Context()
