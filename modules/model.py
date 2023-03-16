@@ -1,12 +1,10 @@
 from typing import Optional, List, Tuple
 
-from transformers import AutoModel, AutoTokenizer
-
 from modules.device import torch_gc
 from modules.options import cmd_opts
 
-tokenizer = AutoTokenizer.from_pretrained(cmd_opts.model_path, trust_remote_code=True)
-model = AutoModel.from_pretrained(cmd_opts.model_path, trust_remote_code=True)
+tokenizer = None
+model = None
 
 
 def prepare_model():
@@ -24,12 +22,28 @@ def prepare_model():
     model = model.eval()
 
 
-prepare_model()
+def load_model():
+    if cmd_opts.ui_dev:
+        return
+
+    from transformers import AutoModel, AutoTokenizer
+
+    global tokenizer, model
+
+    tokenizer = AutoTokenizer.from_pretrained(cmd_opts.model_path, trust_remote_code=True)
+    model = AutoModel.from_pretrained(cmd_opts.model_path, trust_remote_code=True)
+    prepare_model()
 
 
 def infer(query,
           history: Optional[List[Tuple]],
           max_length, top_p, temperature):
+    if cmd_opts.ui_dev:
+        return "hello", "hello, dev mode!"
+
+    if not model:
+        raise "Model not loaded"
+
     if history is None:
         history = []
     output, history = model.chat(
