@@ -12,17 +12,17 @@ _gradio_template_response_orig = gr.routes.templates.TemplateResponse
 
 
 def predict(query, max_length, top_p, temperature):
-    output, history = infer(
+    _, output = infer(
         query=query,
         history=ctx.history,
         max_length=max_length,
         top_p=top_p,
         temperature=temperature
     )
-    ok = ctx.append(query, history)
-    print(output)
+    ok = ctx.append(query, output)
     torch_gc()
-    return ok
+    # for clear input textbox
+    return ctx.history, ""
 
 
 def clear_history():
@@ -31,64 +31,67 @@ def clear_history():
 
 
 def create_ui():
-    with gr.Blocks(css=css, analytics_enabled=False, title="ChatGLM") as demo:
-        with gr.Blocks() as chat_interface:
-            prompt = "输入你的内容..."
-            with gr.Row():
-                with gr.Column(scale=3):
-                    gr.Markdown("""<h2><center>ChatGLM WebUI</center></h2>""")
-                    with gr.Row():
-                        with gr.Column(variant="panel"):
-                            with gr.Row():
-                                max_length = gr.Slider(minimum=4, maximum=4096, step=4, label='Max Length', value=2048)
-                                top_p = gr.Slider(minimum=0.01, maximum=1.0, step=0.01, label='Top P', value=0.7)
-                            with gr.Row():
-                                temperature = gr.Slider(minimum=0.01, maximum=1.0, step=0.01, label='Temperature', value=0.95)
+    reload_javascript()
 
-                            # with gr.Row():
-                            #     max_rounds = gr.Slider(minimum=1, maximum=50, step=1, label="最大对话轮数（调小可以显著改善爆显存，但是会丢失上下文）", value=20)
+    with gr.Blocks(css=css, analytics_enabled=False) as chat_interface:
+        prompt = "输入你的内容..."
+        with gr.Row():
+            with gr.Column(scale=3):
+                gr.Markdown("""<h2><center>ChatGLM WebUI</center></h2>""")
+                with gr.Row():
+                    with gr.Column(variant="panel"):
+                        with gr.Row():
+                            max_length = gr.Slider(minimum=4, maximum=4096, step=4, label='Max Length', value=2048)
+                            top_p = gr.Slider(minimum=0.01, maximum=1.0, step=0.01, label='Top P', value=0.7)
+                        with gr.Row():
+                            temperature = gr.Slider(minimum=0.01, maximum=1.0, step=0.01, label='Temperature', value=0.95)
 
-                    with gr.Row():
-                        with gr.Column(variant="panel"):
-                            with gr.Row():
-                                clear = gr.Button("清空对话（上下文）")
+                        # with gr.Row():
+                        #     max_rounds = gr.Slider(minimum=1, maximum=50, step=1, label="最大对话轮数（调小可以显著改善爆显存，但是会丢失上下文）", value=20)
 
-                            with gr.Row():
-                                save_his_btn = gr.Button("保存对话")
-                                load_his_btn = gr.UploadButton("读取对话", file_types=['file'], file_count='single')
+                with gr.Row():
+                    with gr.Column(variant="panel"):
+                        with gr.Row():
+                            clear = gr.Button("清空对话（上下文）")
 
-                with gr.Column(scale=7):
-                    chatbot = gr.Chatbot(elem_id="chat-box", show_label=False).style(height=800)
-                    with gr.Row():
-                        message = gr.Textbox(placeholder=prompt, show_label=False, lines=2)
-                        clear_input = gr.Button("🗑️", elem_id="del-btn")
+                        with gr.Row():
+                            save_his_btn = gr.Button("保存对话")
+                            load_his_btn = gr.UploadButton("读取对话", file_types=['file'], file_count='single')
 
-                    with gr.Row():
-                        submit = gr.Button("发送", elem_id="c_generate")
+            with gr.Column(scale=7):
+                chatbot = gr.Chatbot(elem_id="chat-box", show_label=False).style(height=800)
+                with gr.Row():
+                    input_message = gr.Textbox(placeholder=prompt, show_label=False, lines=2)
+                    clear_input = gr.Button("🗑️", elem_id="del-btn")
 
-            submit.click(predict, inputs=[
-                message,
-                max_length,
-                top_p,
-                temperature
-            ], outputs=[
-                chatbot
-            ])
+                with gr.Row():
+                    submit = gr.Button("发送", elem_id="c_generate")
 
-            clear.click(clear_history, outputs=[chatbot])
-            clear_input.click(lambda x: "", inputs=[message], outputs=[message])
+        submit.click(predict, inputs=[
+            input_message,
+            max_length,
+            top_p,
+            temperature
+        ], outputs=[
+            chatbot,
+            input_message
+        ])
 
-            save_his_btn.click(ctx.save_history)
-            load_his_btn.upload(ctx.load_history, inputs=[
-                load_his_btn,
-            ], outputs=[
-                chatbot
-            ])
+        clear.click(clear_history, outputs=[chatbot])
+        clear_input.click(lambda x: "", inputs=[input_message], outputs=[input_message])
+
+        save_his_btn.click(ctx.save_history)
+        load_his_btn.upload(ctx.load_history, inputs=[
+            load_his_btn,
+        ], outputs=[
+            chatbot
+        ])
 
         interfaces = [
             (chat_interface, "Chat", "chat"),
         ]
 
+    with gr.Blocks(css=css, analytics_enabled=False, title="ChatGLM") as demo:
         with gr.Tabs(elem_id="tabs") as tabs:
             for interface, label, ifid in interfaces:
                 with gr.TabItem(label, id=ifid, elem_id="tab_" + ifid):
@@ -99,8 +102,9 @@ def create_ui():
 
 def reload_javascript():
     scripts_list = [os.path.join(script_path, i) for i in os.listdir(script_path) if i.endswith(".js")]
-    with open("script.js", "r", encoding="utf8") as js_file:
-        javascript = f'<script>{js_file.read()}</script>'
+    javascript = ""
+    # with open("script.js", "r", encoding="utf8") as js_file:
+    #     javascript = f'<script>{js_file.read()}</script>'
 
     for path in scripts_list:
         with open(path, "r", encoding="utf8") as js_file:
