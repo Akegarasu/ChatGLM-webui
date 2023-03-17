@@ -6,7 +6,7 @@ from modules.ui import create_ui
 def main():
     load_model()
     ui = create_ui()
-    ui.queue().launch(
+    ui.launch(
         server_name="0.0.0.0" if cmd_opts.listen else None,
         server_port=cmd_opts.port,
         share=cmd_opts.share
