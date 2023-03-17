@@ -46,8 +46,8 @@ class Context:
             self.history.pop(0)
             self.rh.pop(0)
         elif hl > self.max_rounds:
-            self.history = self.history[hl - self.max_rounds + 1:]
-            self.rh = self.rh[hl - self.max_rounds + 1:]
+            self.history = self.history[-self.max_rounds:]
+            self.rh = self.rh[-self.max_rounds:]
 
     def save_history(self):
         if not os.path.exists("outputs"):
