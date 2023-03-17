@@ -25,6 +25,7 @@ class Context:
         else:
             self.history = []
         self.rh = []
+        self.max_rounds = 20
 
     def append(self, query, output) -> str:
         # c: List[Tuple[str, str]]
@@ -36,6 +37,17 @@ class Context:
     def clear(self):
         self.history = []
         self.rh = []
+
+    def limit_round(self):
+        hl = len(self.history)
+        if hl == 0:
+            return
+        elif hl == self.max_rounds:
+            self.history.pop(0)
+            self.rh.pop(0)
+        elif hl > self.max_rounds:
+            self.history = self.history[hl - self.max_rounds + 1:]
+            self.rh = self.rh[hl - self.max_rounds + 1:]
 
     def save_history(self):
         if not os.path.exists("outputs"):
