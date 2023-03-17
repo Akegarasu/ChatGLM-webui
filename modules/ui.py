@@ -12,6 +12,7 @@ _gradio_template_response_orig = gr.routes.templates.TemplateResponse
 
 
 def predict(query, max_length, top_p, temperature):
+    ctx.limit_round()
     _, output = infer(
         query=query,
         history=ctx.history,
@@ -19,7 +20,7 @@ def predict(query, max_length, top_p, temperature):
         top_p=top_p,
         temperature=temperature
     )
-    ok = ctx.append(query, output)
+    ctx.append(query, output)
     torch_gc()
     # for clear input textbox
     return ctx.history, ""
@@ -28,6 +29,10 @@ def predict(query, max_length, top_p, temperature):
 def clear_history():
     ctx.clear()
     return gr.update(value=[])
+
+
+def apply_max_round_click(max_round):
+    ctx.max_rounds = max_round
 
 
 def create_ui():
@@ -46,8 +51,9 @@ def create_ui():
                         with gr.Row():
                             temperature = gr.Slider(minimum=0.01, maximum=1.0, step=0.01, label='Temperature', value=0.95)
 
-                        # with gr.Row():
-                        #     max_rounds = gr.Slider(minimum=1, maximum=50, step=1, label="最大对话轮数（调小可以显著改善爆显存，但是会丢失上下文）", value=20)
+                        with gr.Row():
+                            max_rounds = gr.Slider(minimum=1, maximum=100, step=1, label="最大对话轮数（调小可以显著改善爆显存，但是会丢失上下文）", value=20)
+                            apply_max_rounds = gr.Button("✔", elem_id="del-btn")
 
                 with gr.Row():
                     with gr.Column(variant="panel"):
@@ -61,7 +67,7 @@ def create_ui():
             with gr.Column(scale=7):
                 chatbot = gr.Chatbot(elem_id="chat-box", show_label=False).style(height=800)
                 with gr.Row():
-                    input_message = gr.Textbox(placeholder=prompt, show_label=False, lines=2)
+                    input_message = gr.Textbox(placeholder=prompt, show_label=False, lines=2, elem_id="chat-input")
                     clear_input = gr.Button("🗑️", elem_id="del-btn")
 
                 with gr.Row():
@@ -86,6 +92,8 @@ def create_ui():
         ], outputs=[
             chatbot
         ])
+
+        apply_max_rounds.click(apply_max_round_click, inputs=[max_rounds])
 
         interfaces = [
             (chat_interface, "Chat", "chat"),
