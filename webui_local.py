@@ -2,7 +2,10 @@ from transformers import AutoModel, AutoTokenizer
 from options import parser
 
 history = []
-cmd_opts = parser.parse_args()
+# cmd_opts = parser.parse_args()
+
+class CmdOpts:
+    pass
 
 tokenizer = AutoTokenizer.from_pretrained(cmd_opts.model_path, trust_remote_code=True)
 model = AutoModel.from_pretrained(cmd_opts.model_path, trust_remote_code=True)
