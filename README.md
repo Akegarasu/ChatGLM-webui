@@ -28,10 +28,6 @@ python webui.py
 
 ### Args
 
-`--model-path`: specify model path. If this parameter is not specified manually, the default value is `THUDM/chatglm-6b`. Transformers will automatically download model from huggingface.
-
-`--listen`: launch gradio with 0.0.0.0 as server name, allowing to respond to network requests
-
 `--port`: webui port
 
 `--share`: use gradio to share

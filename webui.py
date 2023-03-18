@@ -1,34 +1,60 @@
-import os
-from modules.model import load_model
-from modules.options import cmd_opts
-from modules.ui import create_ui
+import gradio as gr
+from transformers import AutoModel, AutoTokenizer
+from options import parser
+
+history = []
+cmd_opts = parser.parse_args()
+
+tokenizer = AutoTokenizer.from_pretrained(cmd_opts.model_path, trust_remote_code=True)
+model = AutoModel.from_pretrained(cmd_opts.model_path, trust_remote_code=True)
 
 
-def ensure_output_dirs():
-    folders = ["outputs/save", "outputs/markdown"]
+def prepare_model():
+    global model
+    if cmd_opts.cpu:
+        model = model.float()
+    else:
+        if cmd_opts.precision == "fp16":
+            model = model.half().cuda()
+        elif cmd_opts.precision == "int4":
+            model = model.half().quantize(4).cuda()
+        elif cmd_opts.precision == "int8":
+            model = model.half().quantize(8).cuda()
 
-    def check_and_create(p):
-        if not os.path.exists(p):
-            os.makedirs(p)
-
-    for i in folders:
-        check_and_create(i)
-
-
-def init():
-    ensure_output_dirs()
-    load_model()
-
-
-def main():
-    ui = create_ui()
-    ui.launch(
-        server_name="0.0.0.0" if cmd_opts.listen else None,
-        server_port=cmd_opts.port,
-        share=cmd_opts.share
-    )
+    model = model.eval()
 
 
-if __name__ == "__main__":
-    init()
-    main()
+prepare_model()
+
+
+def predict(input):
+    global history
+    output, history = model.chat(tokenizer, input, history)
+    print(history[-1][0] + "\n\n" + history[-1][1] + "\n\n\n")
+    return history
+
+
+with gr.Blocks(css="#chat-box {white-space: pre-line;}") as demo:
+    prompt = "输入你的内容..."
+    gr.Markdown("""<h2><center>ChatGLM WebUI</center></h2>""")
+    chatbot = gr.Chatbot(elem_id="chat-box")
+    message = gr.Textbox(placeholder=prompt)
+    state = gr.State()
+    with gr.Row():
+        submit = gr.Button("发送")
+        clear = gr.Button("清空对话")
+
+
+    def clear_history():
+        global history
+        history.clear()
+        return gr.update(value=[])
+
+
+    submit.click(predict, inputs=[message], outputs=[chatbot])
+    clear.click(clear_history, outputs=[chatbot])
+
+demo.queue().launch(
+    server_port=cmd_opts.port,
+    share=cmd_opts.share
+)
