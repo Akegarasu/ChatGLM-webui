@@ -61,6 +61,7 @@ def create_ui():
 
                         with gr.Row():
                             save_his_btn = gr.Button("保存对话")
+                            save_md_btn = gr.Button("保存为MarkDown")
                             load_his_btn = gr.UploadButton("读取对话", file_types=['file'], file_count='single')
 
             with gr.Column(scale=7):
@@ -86,6 +87,7 @@ def create_ui():
         clear_input.click(lambda x: "", inputs=[input_message], outputs=[input_message])
 
         save_his_btn.click(ctx.save_history)
+        save_md_btn.click(ctx.save_as_md)
         load_his_btn.upload(ctx.load_history, inputs=[
             load_his_btn,
         ], outputs=[
