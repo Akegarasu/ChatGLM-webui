@@ -30,7 +30,7 @@ prepare_model()
 def predict(input):
     global history
     output, history = model.chat(tokenizer, input, history)
-    print(history)
+    print(history[-1][0] + "\n\n" + history[-1][1] + "\n\n\n")
     return history
 
 
