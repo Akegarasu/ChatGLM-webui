@@ -61,8 +61,10 @@ def create_ui():
 
                         with gr.Row():
                             save_his_btn = gr.Button("保存对话")
-                            save_md_btn = gr.Button("保存为MarkDown")
                             load_his_btn = gr.UploadButton("读取对话", file_types=['file'], file_count='single')
+
+                        with gr.Row():
+                            save_md_btn = gr.Button("保存为 MarkDown")
 
             with gr.Column(scale=7):
                 chatbot = gr.Chatbot(elem_id="chat-box", show_label=False).style(height=800)
