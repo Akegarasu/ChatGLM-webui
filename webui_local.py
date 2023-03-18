@@ -5,7 +5,8 @@ history = []
 # cmd_opts = parser.parse_args()
 
 class CmdOpts:
-    pass
+    def __init__(self):
+        self.model_path = "./model/chatglm-6b"
 
 tokenizer = AutoTokenizer.from_pretrained(cmd_opts.model_path, trust_remote_code=True)
 model = AutoModel.from_pretrained(cmd_opts.model_path, trust_remote_code=True)
