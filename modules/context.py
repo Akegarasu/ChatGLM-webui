@@ -49,26 +49,25 @@ class Context:
             self.history = self.history[-self.max_rounds:]
             self.rh = self.rh[-self.max_rounds:]
 
-    # 保存为json文件，供webui读取使用
     def save_history(self):
-        if not os.path.exists("chat_history"):
-            os.mkdir("chat_history")
+        if not os.path.exists("outputs/save"):
+            os.mkdir("outputs/save")
 
         s = [{"q": i[0], "o": i[1]} for i in self.history]
         filename = f"history-{int(time.time())}.json"
-        with open(os.path.join("chat_history", filename), "w", encoding="utf-8") as f:
+        with open(os.path.join("outputs", "save", filename), "w", encoding="utf-8") as f:
             f.write(json.dumps(s, ensure_ascii=False))
 
-    # 增加保存为markdown文档的功能，方便人类查看
     def save_as_md(self):
-        if not os.path.exists("markdown"):
-            os.mkdir("markdown")
+        if not os.path.exists("outputs/markdown"):
+            os.makedirs("outputs/markdown")
 
         filename = f"history-{int(time.time())}.md"
-        with open(os.path.join("markdown", filename), "w", encoding="utf-8") as f:
-            for i in self.history:
-                f.write(f"# 我: {i[0]}\n\n")
-                f.write(f"ChatGLM: {i[1]}\n\n")
+        output = ""
+        for i in self.history:
+            output += f"# 我: {i[0]}\n\nChatGLM: {i[1]}\n\n"
+        with open(os.path.join("outputs", "markdown", filename), "w", encoding="utf-8") as f:
+            f.write(output)
 
     def load_history(self, file):
         try:
