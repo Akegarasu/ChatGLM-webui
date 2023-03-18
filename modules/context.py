@@ -50,18 +50,12 @@ class Context:
             self.rh = self.rh[-self.max_rounds:]
 
     def save_history(self):
-        if not os.path.exists("outputs/save"):
-            os.mkdir("outputs/save")
-
         s = [{"q": i[0], "o": i[1]} for i in self.history]
         filename = f"history-{int(time.time())}.json"
         with open(os.path.join("outputs", "save", filename), "w", encoding="utf-8") as f:
             f.write(json.dumps(s, ensure_ascii=False))
 
     def save_as_md(self):
-        if not os.path.exists("outputs/markdown"):
-            os.makedirs("outputs/markdown")
-
         filename = f"history-{int(time.time())}.md"
         output = ""
         for i in self.history:
