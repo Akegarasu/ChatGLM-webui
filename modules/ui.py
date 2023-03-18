@@ -21,7 +21,6 @@ def predict(query, max_length, top_p, temperature):
         temperature=temperature
     )
     ctx.append(query, output)
-    torch_gc()
     # for clear input textbox
     return ctx.history, ""
 
