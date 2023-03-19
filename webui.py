@@ -38,7 +38,7 @@ def wait_on_server(ui=None):
 def main():
     while True:
         ui = create_ui()
-        ui.launch(
+        ui.queue(concurrency_count=5, max_size=64).launch(
             server_name="0.0.0.0" if cmd_opts.listen else None,
             server_port=cmd_opts.port,
             share=cmd_opts.share,
