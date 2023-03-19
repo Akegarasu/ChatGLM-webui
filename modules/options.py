@@ -12,3 +12,4 @@ parser.add_argument("--device-id", type=str, help="select the default CUDA devic
 parser.add_argument("--ui-dev", action='store_true', help="ui develop mode", default=None)
 
 cmd_opts = parser.parse_args()
+need_restart = False

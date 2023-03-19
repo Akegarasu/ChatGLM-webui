@@ -1,5 +1,9 @@
 import os
+import time
+from modules import options
+
 from modules.model import load_model
+
 from modules.options import cmd_opts
 from modules.ui import create_ui
 
@@ -20,13 +24,28 @@ def init():
     load_model()
 
 
+def wait_on_server(ui=None):
+    while 1:
+        time.sleep(1)
+        if options.need_restart:
+            options.need_restart = False
+            time.sleep(0.5)
+            ui.close()
+            time.sleep(0.5)
+            break
+
+
 def main():
-    ui = create_ui()
-    ui.queue(concurrency_count=5, max_size=20).launch(
-        server_name="0.0.0.0" if cmd_opts.listen else None,
-        server_port=cmd_opts.port,
-        share=cmd_opts.share
-    )
+    while True:
+        ui = create_ui()
+        ui.launch(
+            server_name="0.0.0.0" if cmd_opts.listen else None,
+            server_port=cmd_opts.port,
+            share=cmd_opts.share,
+            prevent_thread_lock=True
+        )
+        wait_on_server(ui)
+        print('Restarting UI...')
 
 
 if __name__ == "__main__":

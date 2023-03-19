@@ -46,7 +46,8 @@ def infer(query,
           history: Optional[List[Tuple]],
           max_length, top_p, temperature):
     if cmd_opts.ui_dev:
-        return "hello", "hello, dev mode!"
+        yield "hello", "hello, dev mode!"
+        return
 
     if not model:
         raise "Model not loaded"
@@ -55,19 +56,17 @@ def infer(query,
         history = []
 
     output_pos = 0
-
-    for output, history in model.stream_chat(
-            tokenizer, query=query, history=history,
-            max_length=max_length,
-            top_p=top_p,
-            temperature=temperature
-    ):
-        try:
+    try:
+        for output, history in model.stream_chat(
+                tokenizer, query=query, history=history,
+                max_length=max_length,
+                top_p=top_p,
+                temperature=temperature
+        ):
             print(output[output_pos:], end='')
-        except Exception as e:
-            print(f"Generation failed: {repr(e)}")
-        output_pos = len(output)
-        yield query, output
-
+            output_pos = len(output)
+            yield query, output
+    except Exception as e:
+        print(f"Generation failed: {repr(e)}")
     print("")
     torch_gc()

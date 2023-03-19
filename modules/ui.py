@@ -2,8 +2,8 @@ import os
 
 import gradio as gr
 
+from modules import options
 from modules.context import ctx
-from modules.device import torch_gc
 from modules.model import infer
 
 css = "style.css"
@@ -15,11 +15,11 @@ def predict(query, max_length, top_p, temperature):
     ctx.limit_round()
     flag = True
     for _, output in infer(
-        query=query,
-        history=ctx.history,
-        max_length=max_length,
-        top_p=top_p,
-        temperature=temperature
+            query=query,
+            history=ctx.history,
+            max_length=max_length,
+            top_p=top_p,
+            temperature=temperature
     ):
         if flag:
             ctx.append(query, output)
@@ -107,9 +107,19 @@ def create_ui():
 
         apply_max_rounds.click(apply_max_round_click, inputs=[max_rounds], outputs=[cmd_output])
 
-        interfaces = [
-            (chat_interface, "Chat", "chat"),
-        ]
+    with gr.Blocks(css=css, analytics_enabled=False) as settings_interface:
+        with gr.Row():
+            reload_ui = gr.Button("Reload UI")
+
+        def restart_ui():
+            options.need_restart = True
+
+        reload_ui.click(restart_ui)
+
+    interfaces = [
+        (chat_interface, "Chat", "chat"),
+        (settings_interface, "Settings", "settings")
+    ]
 
     with gr.Blocks(css=css, analytics_enabled=False, title="ChatGLM") as demo:
         with gr.Tabs(elem_id="tabs") as tabs:
