@@ -52,16 +52,20 @@ class Context:
     def save_history(self):
         s = [{"q": i[0], "o": i[1]} for i in self.history]
         filename = f"history-{int(time.time())}.json"
-        with open(os.path.join("outputs", "save", filename), "w", encoding="utf-8") as f:
+        p = os.path.join("outputs", "save", filename)
+        with open(p, "w", encoding="utf-8") as f:
             f.write(json.dumps(s, ensure_ascii=False))
+        return f"Successful saved to: {p}"
 
     def save_as_md(self):
         filename = f"history-{int(time.time())}.md"
+        p = os.path.join("outputs", "markdown", filename)
         output = ""
         for i in self.history:
             output += f"# 我: {i[0]}\n\nChatGLM: {i[1]}\n\n"
-        with open(os.path.join("outputs", "markdown", filename), "w", encoding="utf-8") as f:
+        with open(p, "w", encoding="utf-8") as f:
             f.write(output)
+        return f"Successful saved to: {p}"
 
     def load_history(self, file):
         try:

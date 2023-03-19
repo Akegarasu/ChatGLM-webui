@@ -32,6 +32,7 @@ def clear_history():
 
 def apply_max_round_click(max_round):
     ctx.max_rounds = max_round
+    return f"Applied: max round {ctx.max_rounds}"
 
 
 def create_ui():
@@ -66,6 +67,9 @@ def create_ui():
                         with gr.Row():
                             save_md_btn = gr.Button("保存为 MarkDown")
 
+                with gr.Row():
+                    cmd_output = gr.Textbox(label="Command Output")
+
             with gr.Column(scale=7):
                 chatbot = gr.Chatbot(elem_id="chat-box", show_label=False).style(height=800)
                 with gr.Row():
@@ -88,15 +92,15 @@ def create_ui():
         clear.click(clear_history, outputs=[chatbot])
         clear_input.click(lambda x: "", inputs=[input_message], outputs=[input_message])
 
-        save_his_btn.click(ctx.save_history)
-        save_md_btn.click(ctx.save_as_md)
+        save_his_btn.click(ctx.save_history, outputs=[cmd_output])
+        save_md_btn.click(ctx.save_as_md, outputs=[cmd_output])
         load_his_btn.upload(ctx.load_history, inputs=[
             load_his_btn,
         ], outputs=[
             chatbot
         ])
 
-        apply_max_rounds.click(apply_max_round_click, inputs=[max_rounds])
+        apply_max_rounds.click(apply_max_round_click, inputs=[max_rounds], outputs=[cmd_output])
 
         interfaces = [
             (chat_interface, "Chat", "chat"),
