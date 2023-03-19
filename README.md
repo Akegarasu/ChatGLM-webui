@@ -36,6 +36,6 @@ python webui.py
 
 `--share`: use gradio to share
 
-`--precision`: fp16, int4, int8
+`--precision`: fp32(CPU only), fp16, int4(CUDA GPU only), int8(CUDA GPU only)
 
 `--cpu`: use cpu

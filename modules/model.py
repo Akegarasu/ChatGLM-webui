@@ -10,7 +10,13 @@ model = None
 def prepare_model():
     global model
     if cmd_opts.cpu:
-        model = model.float()
+        if cmd_opts.precision == "fp32":
+            model = model.float()
+        elif cmd_opts.precision == "fp16":
+            model = model.bfloat16()
+        else:            
+            print("--precision ERROR: INT modes are only for CUDA GPUs.")
+            exit(1)
     else:
         if cmd_opts.precision == "fp16":
             model = model.half().cuda()
@@ -18,6 +24,9 @@ def prepare_model():
             model = model.half().quantize(4).cuda()
         elif cmd_opts.precision == "int8":
             model = model.half().quantize(8).cuda()
+        elif cmd_opts.precision == "fp32":
+            print("--precision ERROR: fp32 mode is only for CPU. Are you really ready to have such a large amount of vmem XD")
+            exit(1)
 
     model = model.eval()
 
