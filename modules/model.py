@@ -55,12 +55,21 @@ def infer(query,
 
     if history is None:
         history = []
-    output, history = model.chat(
+
+    output_pos = 0
+
+    for output, history in model.stream_chat(
         tokenizer, query=query, history=history,
         max_length=max_length,
         top_p=top_p,
         temperature=temperature
-    )
-    print(output)
+    ):
+        try:
+            print(output[output_pos:],end='')
+        except:
+            pass
+        output_pos = len(output)
+        yield query, output
+
+    print()
     torch_gc()
-    return query, output

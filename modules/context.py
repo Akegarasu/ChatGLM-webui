@@ -34,6 +34,12 @@ class Context:
         self.rh.append((query, ok))
         return ok
 
+    def refresh_last(self, query, output) -> str:        
+        ok = parse_codeblock(output)
+        self.history[-1] = (query, output)
+        self.rh[-1] = (query, ok)
+        return ok
+
     def clear(self):
         self.history = []
         self.rh = []

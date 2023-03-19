@@ -22,7 +22,7 @@ def init():
 
 def main():
     ui = create_ui()
-    ui.launch(
+    ui.queue(concurrency_count=5, max_size=20).launch(
         server_name="0.0.0.0" if cmd_opts.listen else None,
         server_port=cmd_opts.port,
         share=cmd_opts.share

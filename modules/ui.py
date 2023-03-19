@@ -13,16 +13,21 @@ _gradio_template_response_orig = gr.routes.templates.TemplateResponse
 
 def predict(query, max_length, top_p, temperature):
     ctx.limit_round()
-    _, output = infer(
+    flag = True
+    for _, output in infer(
         query=query,
         history=ctx.history,
         max_length=max_length,
         top_p=top_p,
         temperature=temperature
-    )
-    ctx.append(query, output)
-    # for clear input textbox
-    return ctx.history, ""
+    ):
+        if flag:
+            ctx.append(query, output)
+            flag = False
+        else:
+            ctx.refresh_last(query, output)
+        # for clear input textbox
+        yield ctx.history, ""
 
 
 def clear_history():
