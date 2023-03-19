@@ -25,9 +25,10 @@ def predict(query, max_length, top_p, temperature):
             ctx.append(query, output)
             flag = False
         else:
-            ctx.refresh_last(query, output)
-        # for clear input textbox
+            ctx.update_last(query, output)
         yield ctx.history, ""
+    ctx.refresh_last()
+    yield ctx.rh, ""
 
 
 def clear_history():
