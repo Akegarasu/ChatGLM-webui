@@ -8,7 +8,9 @@ A webui for ChatGLM made by THUDM. [chatglm-6b](https://huggingface.co/THUDM/cha
 
 - Original Chat like [chatglm-6b](https://huggingface.co/THUDM/chatglm-6b)'s demo, but use Gradio Chatbox for better user experience.
 - One click install script (but you still must install python)
+- More parameters that can be freely adjusted
 - Convenient save/load dialog history, presets
+- Custom maximum context length
 - Save to Markdown
 - Use program arguments to specify model and caculation accuracy
 
