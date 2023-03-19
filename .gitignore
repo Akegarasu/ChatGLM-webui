@@ -4,6 +4,7 @@
 py310/
 git/
 model/
+outputs/
 __pycache__/
 
 test.py
