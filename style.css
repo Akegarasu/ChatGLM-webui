@@ -8,3 +8,7 @@
 .message {
     width: inherit !important;
 }
+
+.app {
+    max-width: 100% !important;
+}

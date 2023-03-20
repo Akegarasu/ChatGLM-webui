@@ -58,13 +58,18 @@ def create_ui():
                             temperature = gr.Slider(minimum=0.01, maximum=1.0, step=0.01, label='Temperature', value=0.95)
 
                         with gr.Row():
-                            max_rounds = gr.Slider(minimum=1, maximum=100, step=1, label="最大对话轮数（调小可以显著改善爆显存，但是会丢失上下文）", value=20)
+                            max_rounds = gr.Slider(minimum=1, maximum=100, step=1, label="最大对话轮数", value=20)
                             apply_max_rounds = gr.Button("✔", elem_id="del-btn")
+
+                        cmd_output = gr.Textbox(label="Command Output")
 
                 with gr.Row():
                     with gr.Column(variant="panel"):
                         with gr.Row():
-                            clear = gr.Button("清空对话（上下文）")
+                            clear = gr.Button("清空对话")
+
+                        with gr.Row():
+                            sync_his_btn = gr.Button("同步对话")
 
                         with gr.Row():
                             save_his_btn = gr.Button("保存对话")
@@ -72,9 +77,6 @@ def create_ui():
 
                         with gr.Row():
                             save_md_btn = gr.Button("保存为 MarkDown")
-
-                with gr.Row():
-                    cmd_output = gr.Textbox(label="Command Output")
 
             with gr.Column(scale=7):
                 chatbot = gr.Chatbot(elem_id="chat-box", show_label=False).style(height=800)
@@ -105,6 +107,7 @@ def create_ui():
         ], outputs=[
             chatbot
         ])
+        sync_his_btn.click(lambda x: ctx.rh, inputs=[input_message], outputs=[chatbot])
 
         apply_max_rounds.click(apply_max_round_click, inputs=[max_rounds], outputs=[cmd_output])
 
