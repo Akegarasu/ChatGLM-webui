@@ -19,3 +19,4 @@ goto :run
 :run
 echo "Start WebUI"
 python webui.py
+pause
