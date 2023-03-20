@@ -26,7 +26,7 @@ def predict(query, max_length, top_p, temperature):
             flag = False
         else:
             ctx.update_last(query, output)
-        yield ctx.history, ""
+        yield ctx.rh, ""
     ctx.refresh_last()
     yield ctx.rh, ""
 
