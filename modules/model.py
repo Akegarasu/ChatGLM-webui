@@ -15,7 +15,7 @@ def prepare_model():
         elif cmd_opts.precision == "bf16":
             model = model.bfloat16()
         else:
-            model = model.bfloat16()
+            model = model.float()
     else:
         if cmd_opts.precision == "fp16":
             model = model.half().cuda()
