@@ -39,8 +39,9 @@ class Context:
         self.rh[-1] = (query, output)
 
     def refresh_last(self) -> None:
-        query, output = self.rh[-1]
-        self.rh[-1] = (query, parse_codeblock(output))
+        if self.rh:
+            query, output = self.rh[-1]
+            self.rh[-1] = (query, parse_codeblock(output))
 
     def clear(self):
         self.history = []
