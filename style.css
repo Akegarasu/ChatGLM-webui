@@ -12,3 +12,11 @@
 .app {
     max-width: 100% !important;
 }
+
+.math.inline > span {
+    display: none;
+}
+
+.math.inline > svg {
+    display: inline;
+}
