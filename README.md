@@ -2,7 +2,7 @@
 
 A webui for ChatGLM made by THUDM. [chatglm-6b](https://huggingface.co/THUDM/chatglm-6b)
 
-![image](https://user-images.githubusercontent.com/36563862/226165277-acc5ba44-8041-4c30-a6aa-2746c87f8475.png)
+![image](https://user-images.githubusercontent.com/36563862/226985330-48e3b7f8-8c03-4778-af39-fd9b3a993d19.png)
 
 ## Features
 
