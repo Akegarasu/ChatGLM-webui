@@ -43,9 +43,15 @@ class Context:
             query, output = self.rh[-1]
             self.rh[-1] = (query, parse_codeblock(output))
 
-    def clear(self):
+    def clear(self) -> None:
         self.history = []
         self.rh = []
+
+    def revoke(self) -> List[Tuple[str, str]]:
+        if self.history and self.rh:
+            self.history.pop()
+            self.rh.pop()
+        return self.rh
 
     def limit_round(self):
         hl = len(self.history)

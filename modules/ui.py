@@ -15,12 +15,12 @@ def predict(query, max_length, top_p, temperature, use_stream_chat):
     ctx.limit_round()
     flag = True
     for _, output in infer(
-        query=query,
-        history=ctx.history,
-        max_length=max_length,
-        top_p=top_p,
-        temperature=temperature,
-        use_stream_chat=use_stream_chat
+            query=query,
+            history=ctx.history,
+            max_length=max_length,
+            top_p=top_p,
+            temperature=temperature,
+            use_stream_chat=use_stream_chat
     ):
         if flag:
             ctx.append(query, output)
@@ -89,6 +89,9 @@ def create_ui():
                 with gr.Row():
                     submit = gr.Button("发送", elem_id="c_generate")
 
+                with gr.Row():
+                    revoke_btn = gr.Button("撤回")
+
         submit.click(predict, inputs=[
             input_message,
             max_length,
@@ -99,6 +102,8 @@ def create_ui():
             chatbot,
             input_message
         ])
+
+        revoke_btn.click(lambda x: ctx.revoke(), inputs=[input_message], outputs=[chatbot])
 
         clear.click(clear_history, outputs=[chatbot])
         clear_input.click(lambda x: "", inputs=[input_message], outputs=[input_message])
