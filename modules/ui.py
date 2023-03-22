@@ -11,15 +11,16 @@ script_path = "scripts"
 _gradio_template_response_orig = gr.routes.templates.TemplateResponse
 
 
-def predict(query, max_length, top_p, temperature):
+def predict(query, max_length, top_p, temperature, use_stream_chat):
     ctx.limit_round()
     flag = True
     for _, output in infer(
-            query=query,
-            history=ctx.history,
-            max_length=max_length,
-            top_p=top_p,
-            temperature=temperature
+        query=query,
+        history=ctx.history,
+        max_length=max_length,
+        top_p=top_p,
+        temperature=temperature,
+        use_stream_chat=use_stream_chat
     ):
         if flag:
             ctx.append(query, output)
@@ -62,7 +63,8 @@ def create_ui():
                             apply_max_rounds = gr.Button("✔", elem_id="del-btn")
 
                         cmd_output = gr.Textbox(label="Command Output")
-
+                        with gr.Row():
+                            use_stream_chat = gr.Checkbox(label='使用流式输出', value=True)
                 with gr.Row():
                     with gr.Column(variant="panel"):
                         with gr.Row():
@@ -91,7 +93,8 @@ def create_ui():
             input_message,
             max_length,
             top_p,
-            temperature
+            temperature,
+            use_stream_chat
         ], outputs=[
             chatbot,
             input_message
