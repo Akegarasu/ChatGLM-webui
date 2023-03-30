@@ -46,17 +46,15 @@ class Context:
 
     def inferLoop(self, query, output) -> bool:
         # c: List[Tuple[str, str]]
-        ok = parse_codeblock(output)
         if self.begin:
             self.history.append((query, output))
-            self.rh.append((query, ok))
+            self.rh.append((query, parse_codeblock(output)))
 
             self.begin = False
         else:
             self.history[-1] = (query, output)
             self.rh[-1] = (query, output)
 
-        print(self.interrupted)
         return self.interrupted
 
     def inferEnd(self) -> None:
