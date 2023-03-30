@@ -1,6 +1,7 @@
 from typing import Optional, List, Tuple
 
 from torch.cuda import get_device_properties
+from transformers import AutoModel, AutoTokenizer
 
 from modules.device import torch_gc
 from modules.options import cmd_opts
@@ -9,15 +10,37 @@ tokenizer = None
 model = None
 
 
-def prepare_model():
+def load_model_file(name: str, func=None):
+    import pickle, os
+
+    cache_model = os.path.join(cmd_opts.model_path, f"model_{name}.bin")
+    if func is not None:
+        if os.path.isfile(cache_model):
+            with open(cache_model, "rb") as f:
+                return pickle.load(f)
+
+    model1 = AutoModel.from_pretrained(cmd_opts.model_path, trust_remote_code=True)
+
+    if func is not None:
+        model1 = func(model1)
+        with open(cache_model, "wb") as f:
+            pickle.dump(model1, f)
+    return model1
+
+
+def load_model():
+    if cmd_opts.ui_dev:
+        return
+
+    global tokenizer
+    tokenizer = AutoTokenizer.from_pretrained(cmd_opts.model_path, trust_remote_code=True)
+
     global model
     if cmd_opts.cpu:
         if cmd_opts.precision == "fp32":
-            model = model.float()
+            model = load_model_file("fp32").float()
         elif cmd_opts.precision == "bf16":
-            model = model.bfloat16()
-        else:
-            model = model.float()
+            model = load_model_file("bf16").bfloat16()
     else:
         if cmd_opts.precision is None:
             total_vram_in_gb = get_device_properties(0).total_memory / 1e9
@@ -37,28 +60,17 @@ def prepare_model():
                   f' please add argument --precision when launching the application.')
 
         if cmd_opts.precision == "fp16":
-            model = model.half().cuda()
+            model = load_model_file("fp16").half()
         elif cmd_opts.precision == "int4":
-            model = model.half().quantize(4).cuda()
+            model = load_model_file("int4", lambda m: m.half().quantize(4))
         elif cmd_opts.precision == "int8":
-            model = model.half().quantize(8).cuda()
+            model = load_model_file("int8", lambda m: m.half().quantize(8))
         elif cmd_opts.precision == "fp32":
-            model = model.float()
+            model = load_model_file("fp32").float()
+
+        model = model.cuda()
 
     model = model.eval()
-
-
-def load_model():
-    if cmd_opts.ui_dev:
-        return
-
-    from transformers import AutoModel, AutoTokenizer
-
-    global tokenizer, model
-
-    tokenizer = AutoTokenizer.from_pretrained(cmd_opts.model_path, trust_remote_code=True)
-    model = AutoModel.from_pretrained(cmd_opts.model_path, trust_remote_code=True)
-    prepare_model()
 
 
 def infer(query,
