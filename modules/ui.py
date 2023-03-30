@@ -36,6 +36,17 @@ def predict(ctx, query, max_length, top_p, temperature, use_stream_chat):
     yield ctx.rh, "闲"
 
 
+def regenerate(ctx, max_length, top_p, temperature, use_stream_chat):
+    if not ctx.rh:
+        raise RuntimeWarning("没有过去的对话")
+
+    query, output = ctx.rh.pop()
+    ctx.history.pop()
+
+    for p0, p1 in predict(ctx, query, max_length, top_p, temperature, use_stream_chat):
+        yield p0, p1
+
+
 def clear_history(ctx):
     ctx.clear()
     return gr.update(value=[])
@@ -61,7 +72,8 @@ def create_ui():
                             max_length = gr.Slider(minimum=4, maximum=4096, step=4, label='Max Length', value=2048)
                             top_p = gr.Slider(minimum=0.01, maximum=1.0, step=0.01, label='Top P', value=0.7)
                         with gr.Row():
-                            temperature = gr.Slider(minimum=0.01, maximum=1.0, step=0.01, label='Temperature', value=0.95)
+                            temperature = gr.Slider(minimum=0.01, maximum=1.0, step=0.01, label='Temperature',
+                                                    value=0.95)
 
                         with gr.Row():
                             max_rounds = gr.Slider(minimum=1, maximum=100, step=1, label="最大对话轮数", value=20)
@@ -88,18 +100,26 @@ def create_ui():
             with gr.Column(scale=7):
                 chatbot = gr.Chatbot(elem_id="chat-box", show_label=False).style(height=800)
                 with gr.Row():
-                    input_message = gr.Textbox(placeholder="输入你的内容...(按 Ctrl+Enter 发送)", show_label=False, lines=4, elem_id="chat-input").style(container=False)
+                    input_message = gr.Textbox(placeholder="输入你的内容...(按 Ctrl+Enter 发送)", show_label=False, lines=4,
+                                               elem_id="chat-input").style(container=False)
                     stop_generate = gr.Button("闲", elem_id="del-btn")
 
                 with gr.Row():
                     submit = gr.Button("发送", elem_id="c_generate")
-
-                with gr.Row():
+                    regen = gr.Button("重新生成")
                     revoke_btn = gr.Button("撤回")
 
         submit.click(predict, inputs=[
             state,
             input_message,
+            max_length,
+            top_p,
+            temperature,
+            use_stream_chat
+        ], outputs=[chatbot, stop_generate])
+
+        regen.click(regenerate, inputs=[
+            state,
             max_length,
             top_p,
             temperature,

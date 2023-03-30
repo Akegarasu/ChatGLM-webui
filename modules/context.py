@@ -18,18 +18,29 @@ def parse_codeblock(text):
     return "".join(lines)
 
 
+STOPPED = 0
+LOOP_FIRST = 1
+LOOP = 2
+INTERRUPTED = 3
+
+
 class Context:
     def __init__(self, history: Optional[List[Tuple[str, str]]] = None):
-        if history:
-            self.history = history
-        else:
-            self.history = []
+        self.history = history if history else []
         self.rh = []
         self.max_rounds = 20
 
+        self.state = STOPPED
+
     def inferBegin(self):
-        self.begin = True
-        self.interrupted = False
+        # gradio发展神速啊
+        # self.interrupt()
+        # import time
+        # while self.state != STOPPED:
+        #     time.sleep(1)
+        #     print("等待其他线程终止")
+
+        self.state = LOOP_FIRST
 
         hl = len(self.history)
         if hl == 0:
@@ -42,32 +53,36 @@ class Context:
             self.rh = self.rh[-self.max_rounds:]
 
     def interrupt(self):
-        self.interrupted = True
+        if self.state == LOOP_FIRST or self.state == LOOP:
+            self.state = INTERRUPTED
 
     def inferLoop(self, query, output) -> bool:
         # c: List[Tuple[str, str]]
-        if self.begin:
+        if self.state == INTERRUPTED:
+            return True
+        elif self.state == LOOP_FIRST:
             self.history.append((query, output))
             self.rh.append((query, parse_codeblock(output)))
 
-            self.begin = False
+            self.state = LOOP
         else:
             self.history[-1] = (query, output)
             self.rh[-1] = (query, output)
 
-        return self.interrupted
+        return False
 
     def inferEnd(self) -> None:
         if self.rh:
             query, output = self.rh[-1]
             self.rh[-1] = (query, parse_codeblock(output))
+        self.state = STOPPED
 
     def clear(self) -> None:
         self.history = []
         self.rh = []
 
     def revoke(self) -> List[Tuple[str, str]]:
-        if self.history and self.rh:
+        if self.rh:
             self.history.pop()
             self.rh.pop()
         return self.rh
