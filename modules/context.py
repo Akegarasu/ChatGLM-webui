@@ -3,6 +3,8 @@ import json
 import os
 import time
 
+from modules.options import cmd_opts
+
 
 def parse_codeblock(text):
     lines = text.split("\n")
@@ -33,13 +35,6 @@ class Context:
         self.state = STOPPED
 
     def inferBegin(self):
-        # gradio发展神速啊
-        # self.interrupt()
-        # import time
-        # while self.state != STOPPED:
-        #     time.sleep(1)
-        #     print("等待其他线程终止")
-
         self.state = LOOP_FIRST
 
         hl = len(self.history)
@@ -118,4 +113,4 @@ class Context:
         return self.rh
 
 
-ctx = Context()
+global_ctx = Context() if cmd_opts.shared_session else None
