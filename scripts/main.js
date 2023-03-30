@@ -1,13 +1,9 @@
-// Gradio ui update hook from stable-diffusion-webui
-
-let uiUpdateCallbacks = []
-let uiTabChangeCallbacks = []
-let uiCurrentTab = null;
+// Gradio ui update hook from stable-diffusion-webui-chinese
 
 
-function gradioApp() {
-    const gradioShadowRoot = document.getElementsByTagName('gradio-app')[0].shadowRoot
-    return !!gradioShadowRoot ? gradioShadowRoot : document;
+var _app;
+function gradioApp(){
+	return _app||(_app=document.getElementsByTagName('gradio-app')[0].getRootNode());
 }
 
 function get_uiCurrentTab() {
@@ -18,52 +14,66 @@ function get_uiCurrentTabContent() {
     return gradioApp().querySelector('.tabitem[id^=tab_]:not([style*="display: none"])')
 }
 
-function onUiUpdate(callback) {
-    uiUpdateCallbacks.push(callback)
-}
+let onupdates = [], ontabchanges = [], onloads = [];
+let uiCurrentTab = null;
 
-function onUiTabChange(callback) {
-    uiTabChangeCallbacks.push(callback)
+function onUiUpdate(fn){
+	onupdates.push(fn);
+}
+function onUiTabChange(fn){
+	ontabchanges.push(fn);
+}
+function onLoad(fn) {
+	onloads?onloads.push(fn):fn();
 }
 
 function runCallback(x, m) {
-    try {
-        x(m)
-    } catch (e) {
-        (console.error || console.log).call(console, e.message, e);
-    }
+	for(let i=0;i<x.length;i++) {
+		try {
+			x[i](m)
+		} catch (e) {
+			(console.error || console.log).call(console, e.message, e);
+		}
+	}
 }
 
-function executeCallbacks(queue, m) {
-    queue.forEach(function (x) {
-        runCallback(x, m)
-    })
-}
+document.addEventListener("DOMContentLoaded", function() {
+	let debounce = setInterval(function () {
+		if (!(uiCurrentTab = get_uiCurrentTab())) return;
+		clearInterval(debounce);
 
-document.addEventListener("DOMContentLoaded", function () {
-    let mutationObserver = new MutationObserver(function (m) {
-        executeCallbacks(uiUpdateCallbacks, m);
-        const newTab = get_uiCurrentTab();
-        if (newTab && (newTab !== uiCurrentTab)) {
-            uiCurrentTab = newTab;
-            executeCallbacks(uiTabChangeCallbacks);
-        }
-    });
-    mutationObserver.observe(gradioApp(), {childList: true, subtree: true})
+		console.clear && console.clear();
+
+		onloads.forEach((e) => e());
+		onloads = null;
+
+		moRunning.observe(gradioApp(), {childList: true, subtree: true});
+	}, 10);
+
+	let moRunning = new MutationObserver(function(m) {
+		clearTimeout(debounce);
+		debounce = setTimeout(function() {
+			runCallback(onupdates,m);
+			const newTab = get_uiCurrentTab();
+			if (newTab !== uiCurrentTab) {
+				uiCurrentTab = newTab;
+				runCallback(ontabchanges,m);
+			}
+		}, 20);
+	});
 });
 
-document.addEventListener('keydown', function (e) {
-    let handled = false;
-    if (e.key !== undefined) {
-        if ((e.key === "Enter" && (e.metaKey || e.ctrlKey || e.altKey))) handled = true;
-    } else if (e.keyCode !== undefined) {
-        if ((e.keyCode === 13 && (e.metaKey || e.ctrlKey || e.altKey))) handled = true;
-    }
-    if (handled) {
-        let button = get_uiCurrentTabContent().querySelector('button[id$=_generate]');
-        if (button) {
-            button.click();
-        }
-        e.preventDefault();
-    }
-})
+/**
+ * Add a ctrl+enter as a shortcut to start a generation
+ */
+document.addEventListener('keydown', function(e) {
+	if (e.key) {
+		if (!(e.key === "Enter" && (e.metaKey || e.ctrlKey))) return
+	} else if (e.keyCode) {
+		if (!(e.keyCode === 13 && (e.metaKey || e.ctrlKey))) return;
+	} else return;
+
+	button = get_uiCurrentTabContent().querySelector('button[id$=_generate]');
+	button&&button.click();
+	e.preventDefault();
+});
