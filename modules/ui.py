@@ -10,10 +10,14 @@ css = "style.css"
 script_path = "scripts"
 _gradio_template_response_orig = gr.routes.templates.TemplateResponse
 
+def gr_show(visible=True):
+    return {"visible": visible, "__type__": "update"}
 
 def predict(ctx, query, max_length, top_p, temperature, use_stream_chat):
-    ctx.limit_round()
-    flag = True
+    ctx.inferBegin()
+
+    yield ctx.rh, "❌"
+
     for _, output in infer(
             query=query,
             history=ctx.history,
@@ -22,14 +26,14 @@ def predict(ctx, query, max_length, top_p, temperature, use_stream_chat):
             temperature=temperature,
             use_stream_chat=use_stream_chat
     ):
-        if flag:
-            ctx.append(query, output)
-            flag = False
-        else:
-            ctx.update_last(query, output)
-        yield ctx.rh, ""
-    ctx.refresh_last()
-    yield ctx.rh, ""
+
+        if ctx.inferLoop(query, output):
+            break
+
+        yield ctx.rh, gr_show()
+
+    ctx.inferEnd()
+    yield ctx.rh, "闲"
 
 
 def clear_history(ctx):
@@ -85,7 +89,7 @@ def create_ui():
                 chatbot = gr.Chatbot(elem_id="chat-box", show_label=False).style(height=800)
                 with gr.Row():
                     input_message = gr.Textbox(placeholder="输入你的内容...(按 Ctrl+Enter 发送)", show_label=False, lines=4, elem_id="chat-input").style(container=False)
-                    clear_input = gr.Button("🗑️", elem_id="del-btn")
+                    stop_generate = gr.Button("闲", elem_id="del-btn")
 
                 with gr.Row():
                     submit = gr.Button("发送", elem_id="c_generate")
@@ -100,13 +104,11 @@ def create_ui():
             top_p,
             temperature,
             use_stream_chat
-        ], outputs=[
-            chatbot,
-            input_message
-        ])
+        ], outputs=[chatbot, stop_generate])
+
+        stop_generate.click(lambda ctx: ctx.interrupt(), inputs=[state], outputs=[])
         revoke_btn.click(lambda ctx: ctx.revoke(), inputs=[state], outputs=[chatbot])
         clear_history_btn.click(clear_history, inputs=[state], outputs=[chatbot])
-        clear_input.click(lambda x: "", inputs=[input_message], outputs=[input_message])
         save_his_btn.click(lambda ctx: ctx.save_history(), inputs=[state], outputs=[cmd_output])
         save_md_btn.click(lambda ctx: ctx.save_as_md(), inputs=[state], outputs=[cmd_output])
         load_his_btn.upload(lambda ctx, f: ctx.load_history(f), inputs=[state, load_his_btn], outputs=[chatbot])
@@ -115,7 +117,7 @@ def create_ui():
 
     with gr.Blocks(css=css, analytics_enabled=False) as settings_interface:
         with gr.Row():
-            reload_ui = gr.Button("Reload UI")
+            reload_ui = gr.Button("重载界面")
 
         def restart_ui():
             options.need_restart = True
@@ -123,8 +125,8 @@ def create_ui():
         reload_ui.click(restart_ui)
 
     interfaces = [
-        (chat_interface, "Chat", "chat"),
-        (settings_interface, "Settings", "settings")
+        (chat_interface, "聊天", "chat"),
+        (settings_interface, "设置", "settings")
     ]
 
     with gr.Blocks(css=css, analytics_enabled=False, title="ChatGLM") as demo:

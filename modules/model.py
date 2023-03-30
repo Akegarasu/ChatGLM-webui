@@ -65,8 +65,10 @@ def infer(query,
           history: Optional[List[Tuple]],
           max_length, top_p, temperature, use_stream_chat: bool):
     if cmd_opts.ui_dev:
-        yield "hello", "hello, dev mode!"
-        return
+        import time
+        while True:
+          yield query, "hello, dev mode %s" % time.ctime()
+          time.sleep(1)
 
     if not model:
         raise "Model not loaded"
