@@ -27,18 +27,39 @@ class Context:
         self.rh = []
         self.max_rounds = 20
 
-    def append(self, query, output) -> str:
+    def inferBegin(self):
+        self.begin = True
+        self.interrupted = False
+
+        hl = len(self.history)
+        if hl == 0:
+            return
+        elif hl == self.max_rounds:
+            self.history.pop(0)
+            self.rh.pop(0)
+        elif hl > self.max_rounds:
+            self.history = self.history[-self.max_rounds:]
+            self.rh = self.rh[-self.max_rounds:]
+
+    def interrupt(self):
+        self.interrupted = True
+
+    def inferLoop(self, query, output) -> bool:
         # c: List[Tuple[str, str]]
         ok = parse_codeblock(output)
-        self.history.append((query, output))
-        self.rh.append((query, ok))
-        return ok
+        if self.begin:
+            self.history.append((query, output))
+            self.rh.append((query, ok))
 
-    def update_last(self, query, output) -> None:
-        self.history[-1] = (query, output)
-        self.rh[-1] = (query, output)
+            self.begin = False
+        else:
+            self.history[-1] = (query, output)
+            self.rh[-1] = (query, output)
 
-    def refresh_last(self) -> None:
+        print(self.interrupted)
+        return self.interrupted
+
+    def inferEnd(self) -> None:
         if self.rh:
             query, output = self.rh[-1]
             self.rh[-1] = (query, parse_codeblock(output))
@@ -52,17 +73,6 @@ class Context:
             self.history.pop()
             self.rh.pop()
         return self.rh
-
-    def limit_round(self):
-        hl = len(self.history)
-        if hl == 0:
-            return
-        elif hl == self.max_rounds:
-            self.history.pop(0)
-            self.rh.pop(0)
-        elif hl > self.max_rounds:
-            self.history = self.history[-self.max_rounds:]
-            self.rh = self.rh[-self.max_rounds:]
 
     def save_history(self):
         s = [{"q": i[0], "o": i[1]} for i in self.history]
