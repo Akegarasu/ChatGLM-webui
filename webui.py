@@ -35,6 +35,14 @@ def wait_on_server(ui=None):
             break
 
 
+def sigint_handler(sig, frame):
+    print(f'正在终止程序')
+    os._exit(0)
+
+import signal
+signal.signal(signal.SIGINT, sigint_handler)
+
+
 def main():
     while True:
         ui = create_ui()
