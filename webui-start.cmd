@@ -1,4 +1,6 @@
 @echo off
+git lfs install
+git lfs clone https://huggingface.co/THUDM/chatglm-6b %cd%\modules\chatglm-6b\
 cd /D "%~dp0"
 if exist .venv goto :start
 
