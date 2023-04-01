@@ -1,3 +1,4 @@
+import os
 from typing import Optional, List, Tuple
 
 from torch.cuda import get_device_properties
@@ -49,6 +50,9 @@ def prepare_model():
 
 
 def load_model():
+    path = os.getcwd()
+    os.chdir(path + '/modules/')
+
     if cmd_opts.ui_dev:
         return
 
@@ -58,6 +62,9 @@ def load_model():
 
     tokenizer = AutoTokenizer.from_pretrained(cmd_opts.model_path, trust_remote_code=True)
     model = AutoModel.from_pretrained(cmd_opts.model_path, trust_remote_code=True)
+    
+    os.chdir(path)
+
     prepare_model()
 
 
