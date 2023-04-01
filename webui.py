@@ -1,12 +1,16 @@
 import os
 import time
+import sysconfig
 from modules import options
 
 from modules.model import load_model
 
 from modules.options import cmd_opts
 from modules.ui import create_ui
-os.environ['PATH'] = os.environ.get("PATH", "") + os.pathsep + os.getcwd() + r'\.venv\Lib\site-packages\torch\lib'
+
+# patch PATH for cpm_kernels libcudart lookup
+os.environ['PATH'] = os.environ.get("PATH", "") + os.pathsep + os.path.join(sysconfig.get_paths()["purelib"], "torch\lib")
+
 
 def ensure_output_dirs():
     folders = ["outputs/save", "outputs/markdown"]
