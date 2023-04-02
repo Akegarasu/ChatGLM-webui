@@ -34,13 +34,16 @@ class Context:
 
         self.state = STOPPED
 
-    def inferBegin(self):
+    def interrupt_and_wait(self):
         # gradio发展神速啊
         self.interrupt()
         import time
         while self.state != STOPPED:
             time.sleep(1)
             print("等待其他线程终止")
+
+    def inferBegin(self):
+        self.interrupt_and_wait()
 
         self.state = LOOP_FIRST
 
@@ -80,10 +83,14 @@ class Context:
         self.state = STOPPED
 
     def clear(self) -> None:
+        self.interrupt_and_wait()
+
         self.history = []
         self.rh = []
 
     def revoke(self) -> List[Tuple[str, str]]:
+        self.interrupt_and_wait()
+
         if self.rh:
             self.history.pop()
             self.rh.pop()
