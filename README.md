@@ -50,3 +50,5 @@ python webui.py
 `--precision`: fp32(CPU only), fp16, int4(CUDA GPU only), int8(CUDA GPU only)
 
 `--cpu`: use cpu
+
+`--cache`: change cache file address
