@@ -35,6 +35,13 @@ class Context:
         self.state = STOPPED
 
     def inferBegin(self):
+        # gradio发展神速啊
+        self.interrupt()
+        import time
+        while self.state != STOPPED:
+            time.sleep(1)
+            print("等待其他线程终止")
+
         self.state = LOOP_FIRST
 
         hl = len(self.history)
@@ -88,7 +95,7 @@ class Context:
         p = os.path.join("outputs", "save", filename)
         with open(p, "w", encoding="utf-8") as f:
             f.write(json.dumps(s, ensure_ascii=False))
-        return f"Successful saved to: {p}"
+        return f"保存到了 {p}"
 
     def save_as_md(self):
         filename = f"history-{int(time.time())}.md"
@@ -98,7 +105,7 @@ class Context:
             output += f"# 我: {i[0]}\n\nChatGLM: {i[1]}\n\n"
         with open(p, "w", encoding="utf-8") as f:
             f.write(output)
-        return f"Successful saved to: {p}"
+        return f"保存到了 {p}"
 
     def load_history(self, file):
         try:
@@ -108,8 +115,8 @@ class Context:
                 _readable_hist = [(i["q"], parse_codeblock(i["o"])) for i in j]
         except Exception as e:
             print(e)
-        self.history = _hist.copy()
-        self.rh = _readable_hist.copy()
+        self.history = _hist
+        self.rh = _readable_hist
         return self.rh
 
 
