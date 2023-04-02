@@ -56,8 +56,8 @@ def load_model():
 
     global tokenizer, model
 
-    tokenizer = AutoTokenizer.from_pretrained(cmd_opts.model_path, trust_remote_code=True)
-    model = AutoModel.from_pretrained(cmd_opts.model_path, trust_remote_code=True)
+    tokenizer = AutoTokenizer.from_pretrained(cmd_opts.model_path, trust_remote_code=True, cache_dir=cmd_opts.cache)
+    model = AutoModel.from_pretrained(cmd_opts.model_path, trust_remote_code=True, cache_dir=cmd_opts.cache)
     prepare_model()
 
 
