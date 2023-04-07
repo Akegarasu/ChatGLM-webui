@@ -1,117 +1,108 @@
-from typing import Optional, List, Tuple
+from typing import List, Tuple, Iterable
 
-from torch.cuda import get_device_properties
-from transformers import AutoModel, AutoTokenizer
+import numpy as np
+import torch
 
 from modules.device import torch_gc
 from modules.options import cmd_opts
 
-tokenizer = None
-model = None
+np.set_printoptions(precision=4, suppress=True, linewidth=200)
 
 
-def load_model_file(name: str, func=None):
-    import pickle, os
+class ModelContext:
+    def clear(self):
+        pass
 
-    cache_model = os.path.join(cmd_opts.model_path, f"model_{name}.bin")
-    if func is not None:
-        if os.path.isfile(cache_model):
-            with open(cache_model, "rb") as f:
-                return pickle.load(f)
+    def remove_first(self):
+        pass
 
-    model1 = AutoModel.from_pretrained(cmd_opts.model_path, trust_remote_code=True)
+    def remove_last(self):
+        pass
 
-    if func is not None:
-        model1 = func(model1)
-        with open(cache_model, "wb") as f:
-            pickle.dump(model1, f)
-    return model1
+    def add_last(self):
+        pass
+
+    def from_json(self, history: List[Tuple[str, str]]):
+        pass
+
+
+class Model:
+    def __init__(self):
+        self.model = None
+        self.tokenizer = None
+
+    def load(self, model_path: str, precision: str = None, cpu: bool = False):
+        pass
+
+    def infer(self, query, ctx,
+              max_length: int, top_p: float, temperature: float) -> Iterable:
+        pass
+
+    def create_context(self) -> ModelContext:
+        return ModelContext()
+
+
+model: Model = None
 
 
 def load_model():
     if cmd_opts.ui_dev:
         return
 
-    global tokenizer
-    tokenizer = AutoTokenizer.from_pretrained(cmd_opts.model_path, trust_remote_code=True)
-
     global model
-    if cmd_opts.cpu:
-        if cmd_opts.precision == "fp32":
-            model = load_model_file("fp32").float()
-        elif cmd_opts.precision == "bf16":
-            model = load_model_file("bf16").bfloat16()
+    if cmd_opts.model_type == 'chatglm':
+        from modules.model_chatglm import ChatGLMModel
+        model = ChatGLMModel()
+    elif cmd_opts.model_type == 'chatrwkv':
+        from modules.model_chatrwkv import ChatRWKVModel
+        model = ChatRWKVModel()
     else:
-        if cmd_opts.precision is None:
-            total_vram_in_gb = get_device_properties(0).total_memory / 1e9
-            print(f'GPU memory: {total_vram_in_gb:.2f} GB')
+        raise f"未知的模型类型{cmd_opts.model_type}"
+    model.load(cmd_opts.model_path, cmd_opts.precision, cmd_opts.cpu)
 
-            if total_vram_in_gb > 30:
-                cmd_opts.precision = 'fp32'
-            elif total_vram_in_gb > 13:
-                cmd_opts.precision = 'fp16'
-            elif total_vram_in_gb > 10:
-                cmd_opts.precision = 'int8'
-            else:
-                cmd_opts.precision = 'int4'
 
-            print(f'Choosing precision {cmd_opts.precision} according to your VRAM.'
-                  f' If you want to decide precision yourself,'
-                  f' please add argument --precision when launching the application.')
+def load_cached_model(model_path: str, load, name: str = None, compressor=None, torch_load=None):
+    import pickle, os
 
-        if cmd_opts.precision == "fp16":
-            model = load_model_file("fp16").half()
-        elif cmd_opts.precision == "int4":
-            model = load_model_file("int4", lambda m: m.half().quantize(4))
-        elif cmd_opts.precision == "int8":
-            model = load_model_file("int8", lambda m: m.half().quantize(8))
-        elif cmd_opts.precision == "fp32":
-            model = load_model_file("fp32").float()
+    cached_model = os.path.join(model_path, f"cache_{name}.pth")
+    if compressor is not None:
+        if os.path.isfile(cached_model):
+            try:
+                if torch_load is not None:
+                    return torch_load(cached_model)
+                else:
+                    with open(cached_model, "rb") as f:
+                        return pickle.load(f)
+            except Exception as e:
+                import traceback
+                traceback.print_exception(type(e), e, e.__traceback__)
 
-        model = model.cuda()
+    model1 = load()
 
-    model = model.eval()
+    if compressor is not None:
+        if torch_load is not None:
+            # modified torch just for me, you can ignore this param
+            torch.save(compressor(model1), cached_model, _use_model_foreach=True)
+        else:
+            model1 = compressor(model1)
+            with open(cached_model, "wb") as f:
+                pickle.dump(model1, f)
+    return model1
 
 
 def infer(query,
-          history: Optional[List[Tuple]],
-          max_length, top_p, temperature, use_stream_chat: bool):
+          ctx,
+          max_length, top_p, temperature):
     if cmd_opts.ui_dev:
         import time
         while True:
-          yield query, "hello, dev mode %s" % time.ctime()
-          time.sleep(1)
+            yield query, "hello, dev mode %s" % time.ctime()
+            time.sleep(1)
 
+    global model
     if not model:
-        raise "Model not loaded"
+        raise "没有加载模型"
 
-    if history is None:
-        history = []
-
-    output_pos = 0
-    if use_stream_chat:
-        try:
-            for output, history in model.stream_chat(
-                    tokenizer, query=query, history=history,
-                    max_length=max_length,
-                    top_p=top_p,
-                    temperature=temperature
-            ):
-                print(output[output_pos:], end='', flush=True)
-                output_pos = len(output)
-                yield query, output
-        except Exception as e:
-            print(f"Generation failed: {repr(e)}")
-    else:
-        output, history = model.chat(
-            tokenizer, query=query, history=history,
-            max_length=max_length,
-            top_p=top_p,
-            temperature=temperature
-        )
-
-        print(output)
-        yield query, output
-
-    print()
+    for output in model.infer(query, ctx, max_length, top_p, temperature):
+        yield output
     torch_gc()
