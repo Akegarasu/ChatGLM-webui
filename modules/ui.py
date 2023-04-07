@@ -16,39 +16,36 @@ def gr_show(visible=True):
     return {"visible": visible, "__type__": "update"}
 
 
-def predict(ctx, sh, query, max_length, top_p, temperature, use_stream_chat):
+def predict(ctx, sh, query, max_length, top_p, temperature):
     ctx = myctx(ctx, sh)
-    ctx.inferBegin()
+    ctx.infer_begin(query)
 
     yield ctx.rh, "❌"
 
-    for _, output in infer(
+    for output in infer(
             query=query,
-            history=ctx.history,
+            ctx=ctx,
             max_length=max_length,
             top_p=top_p,
-            temperature=temperature,
-            use_stream_chat=use_stream_chat
+            temperature=temperature
     ):
-
-        if ctx.inferLoop(query, output):
-            break
-
         yield ctx.rh, gr_show()
 
-    ctx.inferEnd()
+        if ctx.infer_loop(output):
+            break
+
+    ctx.infer_end()
     yield ctx.rh, "闲"
 
 
-def regenerate(ctx, sh, max_length, top_p, temperature, use_stream_chat):
+def regenerate(ctx, sh, max_length, top_p, temperature):
     ctx = myctx(ctx, sh)
     if not ctx.rh:
         raise RuntimeWarning("没有过去的对话")
 
-    query, output = ctx.rh.pop()
-    ctx.history.pop()
+    query, _ = ctx.revoke()
 
-    for p0, p1 in predict(ctx, sh, query, max_length, top_p, temperature, use_stream_chat):
+    for p0, p1 in predict(ctx, sh, query, max_length, top_p, temperature):
         yield p0, p1
 
 
@@ -76,7 +73,7 @@ def create_ui():
 
         with gr.Row():
             with gr.Column(scale=3):
-                gr.Markdown("""<h2><center>ChatGLM WebUI</center></h2>""")
+                gr.Markdown(f"""<h2><center>文字转文字|{cmd_opts.model_type}</center></h2>""")
                 with gr.Row():
                     with gr.Column(variant="panel"):
                         with gr.Row():
@@ -91,7 +88,7 @@ def create_ui():
 
                         cmd_output = gr.Textbox(label="Command Output")
                         with gr.Row():
-                            use_stream_chat = gr.Checkbox(label='流式输出', value=True)
+                            gr.Checkbox(label='流式输出（已弃用）', value=True)
                             shared_context = gr.Checkbox(label='共享上下文', value=False, visible=cmd_opts.shared_session)
                 with gr.Row():
                     with gr.Column(variant="panel"):
@@ -123,8 +120,7 @@ def create_ui():
             input_message,
             max_length,
             top_p,
-            temperature,
-            use_stream_chat
+            temperature
         ], outputs=[chatbot, stop_generate])
 
         regen.click(regenerate, inputs=[
@@ -132,12 +128,15 @@ def create_ui():
             shared_context,
             max_length,
             top_p,
-            temperature,
-            use_stream_chat
+            temperature
         ], outputs=[chatbot, stop_generate])
 
         stop_generate.click(lambda ctx, sh: myctx(ctx, sh).interrupt(), inputs=[state, shared_context], outputs=[])
-        revoke_btn.click(lambda ctx, sh: myctx(ctx, sh).revoke(), inputs=[state, shared_context], outputs=[chatbot])
+        def revoke(ctx, sh):
+            ctx = myctx(ctx, sh)
+            ctx.revoke()
+            return ctx.rh
+        revoke_btn.click(revoke, inputs=[state, shared_context], outputs=[chatbot])
         clear_his_btn.click(clear_history, inputs=[state, shared_context], outputs=[chatbot])
         save_his_btn.click(lambda ctx, sh: myctx(ctx, sh).save_history(), inputs=[state, shared_context], outputs=[cmd_output])
         save_md_btn.click(lambda ctx, sh: myctx(ctx, sh).save_as_md(), inputs=[state, shared_context], outputs=[cmd_output])
@@ -159,7 +158,7 @@ def create_ui():
         (settings_interface, "设置", "settings")
     ]
 
-    with gr.Blocks(css=css, analytics_enabled=False, title="ChatGLM") as demo:
+    with gr.Blocks(css=css, analytics_enabled=False, title="Wenzi2Wenzi") as demo:
         with gr.Tabs(elem_id="tabs") as tabs:
             for interface, label, ifid in interfaces:
                 with gr.TabItem(label, id=ifid, elem_id="tab_" + ifid):

@@ -53,7 +53,7 @@ def main():
             prevent_thread_lock=True
         )
         wait_on_server(ui)
-        print('Restarting UI...')
+        print('重启界面...')
 
 
 if __name__ == "__main__":
