@@ -71,6 +71,8 @@ onLoad(() => {
 	let textarea = base.querySelector("#chat-input textarea")
 	generate_button.addEventListener('click', () => {
 		textarea.value = "";
+		// update svelte internal state
+		textarea.dispatchEvent(new InputEvent("input"));
 	});
 });
 
