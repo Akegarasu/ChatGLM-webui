@@ -1,4 +1,5 @@
 import os
+import random
 
 import gradio as gr
 
@@ -66,6 +67,9 @@ def myctx(ctx, sh: bool):
     return global_ctx if sh and cmd_opts.shared_session else ctx
 
 
+api_ctx = {}
+
+
 def create_ui():
     reload_javascript()
 
@@ -83,7 +87,7 @@ def create_ui():
                             top_p = gr.Slider(minimum=0.01, maximum=1.0, step=0.01, label='Top P', value=0.7)
                             temperature = gr.Slider(minimum=0.05, maximum=5.0, step=0.01, label='Temperature', value=1)
 
-                        cmd_output = gr.Textbox(label="Command Output")
+                        cmd_output = gr.Textbox(label="Command Output", elem_id="cmd_output")
                         with gr.Row():
                             shared_context = gr.Checkbox(label='共享上下文', value=False, visible=cmd_opts.shared_session)
                 with gr.Row():
@@ -139,40 +143,101 @@ def create_ui():
         load_his_btn.upload(lambda ctx, sh, f: myctx(ctx, sh).load_history(f), inputs=[state, shared_context, load_his_btn], outputs=[chatbot])
         sync_his_btn.click(lambda ctx, sh: myctx(ctx, sh).rh, inputs=[state, shared_context], outputs=[chatbot])
 
+        # 未经测试。
+        if cmd_opts.api and cmd_opts.shared_session:
+            global api_ctx
+
+            session_id = gr.Number(visible=False)
+            btn = gr.Button("", visible=False)
+
+            def api_new_session():
+                if len(api_ctx) > 10:
+                    return "-1"
+
+                while True:
+                    id = int(random.random()*10000000)
+                    if id not in api_ctx:
+                        api_ctx[id] = Context()
+                        break
+                return str(id)
+            btn.click(api_new_session, outputs=[cmd_output], api_name="new_session")
+
+            def api_del_session(id):
+                if id in api_ctx:
+                    del api_ctx[id]
+                    return "true"
+                return "false"
+            btn.click(api_del_session, inputs=[session_id], outputs=[cmd_output], api_name="del_session")
+
+            def api_generate(id, query, max_length, top_p, temperature):
+                if id not in api_ctx:
+                    return None
+
+                ctx = api_ctx[id]
+                ctx.infer_begin(query)
+
+                for output in infer(
+                        query=query,
+                        ctx=ctx,
+                        max_length=max_length,
+                        top_p=top_p,
+                        temperature=temperature
+                ):
+                    if ctx.infer_loop(output):
+                        break
+
+                ctx.infer_end()
+                return ctx.rh
+            btn.click(api_generate, inputs=[
+                session_id,
+                input_message,
+                max_length,
+                top_p,
+                temperature
+            ], outputs=[chatbot], api_name="generate")
+
+            def api_stop(id):
+                if id in api_ctx:
+                    api_ctx[id].interrupt_and_wait()
+            btn.click(api_stop, inputs=[session_id], api_name="stop_generate")
+
+            def api_revoke(id):
+                if id not in api_ctx:
+                    return None
+                api_ctx[id].revoke()
+                return api_ctx[id].rh
+            btn.click(api_revoke, inputs=[session_id], outputs=[chatbot], api_name="revoke")
+
     with gr.Blocks(css=css, analytics_enabled=False) as settings_interface:
-        with gr.Column():
-            with gr.Row():
-                gr.Label("通用")
+        with gr.Row().style(equal_height=False):
+            with gr.Column(variant="panel"):
+                gr.HTML("<h1>通用</h1>")
                 max_rounds = gr.Slider(minimum=1, maximum=100, step=1, label="最大对话轮数", value=20)
-                apply_max_rounds = gr.Button("✔", elem_id="del-btn")
                 # 切换后建议手动清空对话...
                 chat_or_generate = gr.Checkbox(label='对话(关闭为续写)', value=True)
+                apply_max_rounds = gr.Button("✔", elem_id="del-btn")
 
             apply_max_rounds.click(apply_max_round_click, inputs=[state, shared_context, max_rounds, chat_or_generate], outputs=[cmd_output])
 
+            with gr.Column(variant="panel"):
+                gr.HTML("<h1>ChatRWKV模型</h1>")
+                alpha_freq = gr.Slider(minimum=0, maximum=1, step=0.01, label='alpha frequency', value=0.5)
+                alpha_pres = gr.Slider(minimum=0, maximum=1, step=0.01, label='alpha presence', value=0.5)
+                top_k = gr.Slider(minimum=0, maximum=100, step=1, label='top_k', value=0)
+                apply_rwkv_cfg = gr.Button("✔", elem_id="del-btn")
+
+                def apply_rwkv_cfg_click(ctx, sh, alpha_freq, alpha_pres, top_k):
+                    if cmd_opts.model_type != "chatrwkv":
+                        return "不是ChatRWKV模型"
+                    ctx = myctx(ctx, sh)
+                    ctx.model_history.alpha_frequency = alpha_freq
+                    ctx.model_history.alpha_presence = alpha_pres
+                    ctx.model_history.top_k = top_k
+                    return f"已保存"
+
+                apply_rwkv_cfg.click(apply_rwkv_cfg_click, inputs=[state, shared_context, alpha_freq, alpha_pres, top_k], outputs=[cmd_output])
+
         with gr.Column():
-            if cmd_opts.model_type == "chatrwkv":
-                with gr.Row():
-                    gr.Label("ChatRWKV相关")
-                    alpha_freq = gr.Slider(minimum=0, maximum=1, step=0.01, label='alpha frequency', value=0.5)
-                    alpha_pres = gr.Slider(minimum=0, maximum=1, step=0.01, label='alpha presence', value=0.5)
-                    top_k = gr.Slider(minimum=0, maximum=100, step=1, label='top_k', value=0)
-                    apply_rwkv_cfg = gr.Button("✔", elem_id="del-btn")
-
-                    def apply_rwkv_cfg_click(ctx, sh, alpha_freq, alpha_pres, top_k):
-                        ctx = myctx(ctx, sh)
-                        ctx.model_history.alpha_frequency = alpha_freq
-                        ctx.model_history.alpha_presence = alpha_pres
-                        ctx.model_history.top_k = top_k
-                        return f"已保存"
-
-                    apply_rwkv_cfg.click(apply_rwkv_cfg_click, inputs=[state, shared_context, alpha_freq, alpha_pres, top_k], outputs=[cmd_output])
-            pass
-
-        with gr.Column():
-            pass
-
-        with gr.Row():
             reload_ui = gr.Button("重载界面")
 
         def restart_ui():
