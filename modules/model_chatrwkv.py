@@ -86,8 +86,11 @@ class ChatRWKVContext(ModelContext):
         self.last_token = None
         self.chunk_len = chunk_len  # split input into chunks to save VRAM (shorter -> slower)
 
+        self.original_token_stop = self.token_stop
+        # todo custom EOL
         if prompt_file:
-            self.token_stop.append(END_OF_LINE)
+            self.chat_token_stop = copy.copy(self.token_stop)
+            self.chat_token_stop.append(END_OF_LINE)
 
     def clear(self):
         self.states = []
@@ -191,6 +194,8 @@ class ChatRWKVModel(Model):
 
             # sampler
             token = sample_logits(out, temperature=ctx.temperature, top_p=ctx.top_p, top_k=ctx.top_k)
+            ctx.last_token = token
+
             if token in ctx.token_stop:
                 break
 
@@ -198,7 +203,6 @@ class ChatRWKVModel(Model):
                 out[token] = NINF
 
             out_buffer.append(token)
-            ctx.last_token = token
 
             tokens = [token]
             if token not in occurrence:
@@ -227,6 +231,7 @@ class ChatRWKVModel(Model):
 
         query = mtctx.prepare_prompt(query) if ctx.chat else query
 
+        mtctx.token_stop = mtctx.chat_token_stop if ctx.chat else mtctx.original_token_stop
         try:
             out_str = ''
             for output in self.stream_generate(query, token_count=max_length, ctx=mtctx):
