@@ -144,7 +144,7 @@ def create_ui():
         sync_his_btn.click(lambda ctx, sh: myctx(ctx, sh).rh, inputs=[state, shared_context], outputs=[chatbot])
 
         # 未经测试。
-        if cmd_opts.api and cmd_opts.shared_session:
+        if cmd_opts.api:
             global api_ctx
 
             session_id = gr.Number(visible=False)
