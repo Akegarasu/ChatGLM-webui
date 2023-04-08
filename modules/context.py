@@ -31,6 +31,7 @@ class Context:
         self.history = []
         self.rh = []
         self.max_rounds = 20
+        self.chat = True
 
         self.state = STOPPED
 
