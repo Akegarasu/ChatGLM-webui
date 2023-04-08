@@ -9,7 +9,23 @@ from modules.options import cmd_opts
 np.set_printoptions(precision=4, suppress=True, linewidth=200)
 
 
+cached_codes = {}
+
+
 class ModelContext:
+    def __init__(self, prompt_file=None):
+        if prompt_file is not None and len(prompt_file):
+            global cached_codes
+            if prompt_file in cached_codes:
+                code = cached_codes[prompt_file]
+            else:
+                with open(prompt_file+".py", 'rb') as file:
+                    cached_codes[prompt_file] = code = compile(file.read(), prompt_file, 'exec')
+
+            exec(code, self.__dict__)
+        else:
+            self.init_prompt = None
+
     def clear(self):
         pass
 

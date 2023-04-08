@@ -66,15 +66,12 @@ def sample_logits(logits, temperature=1.0, top_p=0.85, top_k=0):
     return int(out)
 
 
-cached_codes = {}
-
-
 class ChatRWKVContext(ModelContext):
     def __init__(self, model,
                  temperature=1.0, top_p=0.85, top_k=0, alpha_frequency=0.2, alpha_presence=0.2,
                  token_ban=None, token_stop=None, token_not_repeat=None,
                  chunk_len=256, prompt_file=None):
-        super().__init__()
+        super().__init__(prompt_file)
         self.model = model
 
         self.temperature = temperature
@@ -89,19 +86,8 @@ class ChatRWKVContext(ModelContext):
         self.last_token = None
         self.chunk_len = chunk_len  # split input into chunks to save VRAM (shorter -> slower)
 
-        if prompt_file is not None and len(prompt_file):
+        if prompt_file:
             self.token_stop.append(END_OF_LINE)
-
-            global cached_codes
-            if prompt_file in cached_codes:
-                code = cached_codes[prompt_file]
-            else:
-                with open(prompt_file+".py", 'rb') as file:
-                    cached_codes[prompt_file] = code = compile(file.read(), prompt_file, 'exec')
-
-            exec(code, self.__dict__)
-        else:
-            self.init_prompt = None
 
     def clear(self):
         self.states = []
@@ -266,4 +252,4 @@ class ChatRWKVModel(Model):
                                token_stop=[END_OF_TEXT],  # stop generation whenever you see any token here
                                token_not_repeat=self.encode("，：？！"),
                                chunk_len=256,  # split input into chunks to save VRAM (shorter -> slower)
-                               prompt_file=cmd_opts.rwkv_template)
+                               prompt_file=cmd_opts.chat_prompt)

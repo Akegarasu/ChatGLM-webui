@@ -13,7 +13,7 @@ parser.add_argument("--share", action='store_true', help="use gradio share")
 parser.add_argument("--device-id", type=str, help="select the default CUDA device to use", default=None)
 parser.add_argument("--ui-dev", action='store_true', help="ui develop mode")
 parser.add_argument("--shared-session", action='store_true', help="允许共享对话")
-parser.add_argument("--rwkv-template", type=str, help="rwkv对话模板", default='prompt\\Chinese-1')
+parser.add_argument("--chat-prompt", type=str, help="对话模板", default='prompt\\Chinese-1')
 parser.add_argument("--dont-cache-compressed-model", action='store_true', help="不保存转换后的模型")
 parser.add_argument("--api", action='store_true', help="开启api")
 
