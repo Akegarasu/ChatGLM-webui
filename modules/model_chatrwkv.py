@@ -13,12 +13,12 @@ torch.backends.cudnn.allow_tf32 = True
 torch.backends.cuda.matmul.allow_tf32 = True
 
 # Tune these below (test True/False for all of them) to find the fastest setting:
-# torch._C._jit_set_profiling_executor(True)
-# torch._C._jit_set_profiling_mode(True)
-# torch._C._jit_override_can_fuse_on_cpu(True)
-# torch._C._jit_override_can_fuse_on_gpu(True)
-# torch._C._jit_set_texpr_fuser_enabled(False)
-# torch._C._jit_set_nvfuser_enabled(False)
+torch._C._jit_set_profiling_executor(True)
+torch._C._jit_set_profiling_mode(True)
+torch._C._jit_override_can_fuse_on_cpu(True)
+torch._C._jit_override_can_fuse_on_gpu(True)
+torch._C._jit_set_texpr_fuser_enabled(False)
+torch._C._jit_set_nvfuser_enabled(False)
 
 ########################################################################################################
 # 1. set os.environ["RWKV_CUDA_ON"] = '1' if possible, for faster preprocess of a long ctx.
@@ -88,7 +88,7 @@ class ChatRWKVContext(ModelContext):
         self.states = []
         self.chunk_len = chunk_len  # split input into chunks to save VRAM (shorter -> slower)
 
-        if prompt_file is not None:
+        if prompt_file is not None and len(prompt_file):
             self.token_stop.append(END_OF_LINE)
 
             global cached_codes
@@ -99,6 +99,8 @@ class ChatRWKVContext(ModelContext):
                     cached_codes[prompt_file] = code = compile(file.read(), prompt_file, 'exec')
 
             exec(code, self.__dict__)
+        else:
+            self.init_prompt = None
 
     def clear(self):
         self.states = []
@@ -159,12 +161,12 @@ class ChatRWKVModel(Model):
         #
         ########################################################################################################
         import re
-        from modules.rwkv.model import RWKV
+        from modules.rwkv.model import RWKV, no_device_info
 
         def load(model=os.path.join(model_path, "model.pth")):
-            return RWKV(model=model, strategy=precision, verbose=False)
+            return RWKV(model=model, strategy=precision, verbose=True)
 
-        self.model = load_cached_model(model_path, load, re.sub(r'[\\/:*?"<>[]', '_', precision), lambda m: m.w, load).eval()
+        self.model = load_cached_model(model_path, load, re.sub(r'[\\/:*?"<>[]', '_', no_device_info(precision)), lambda m: m.w, load).eval()
 
     def encode(self, s: str):
         return self.tokenizer.encode(s).ids
@@ -177,11 +179,9 @@ class ChatRWKVModel(Model):
         state = ctx.states[-1]
 
         for i in range(token_count):
-            while True:
+            while len(tokens):
                 out, state = self.model.forward(tokens[:ctx.chunk_len], state)
                 tokens = tokens[ctx.chunk_len:]
-                if len(tokens) == 0:
-                    break
 
             for n in ctx.token_ban:
                 out[n] = NINF
@@ -217,6 +217,9 @@ class ChatRWKVModel(Model):
                 yield tmp
                 ctx.states[-1] = state
                 out_buffer.clear()
+            else:
+                # for stop
+                yield ""
 
         # yield "<长度限制,清空输入框并点击发送以继续>"
 
@@ -248,8 +251,8 @@ class ChatRWKVModel(Model):
         # https://platform.openai.com/docs/api-reference/parameter-details
         return ChatRWKVContext(model=self,
                                top_k=0,  # top_k = 0 then ignore
-                               alpha_frequency=0.2,
-                               alpha_presence=0.2,
+                               alpha_frequency=0.5,
+                               alpha_presence=0.5,
                                token_ban=[],  # ban the generation of some tokens
                                token_stop=[END_OF_TEXT],  # stop generation whenever you see any token here
                                token_not_repeat=self.encode("，：？！"),
