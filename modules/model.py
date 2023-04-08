@@ -79,7 +79,7 @@ def load_cached_model(model_path: str, load, name: str = None, compressor=None, 
 
     model1 = load()
 
-    if compressor is not None:
+    if compressor is not None and not cmd_opts.dont_cache_compressed_model:
         if torch_load is not None:
             # modified torch just for me, you can ignore this param
             torch.save(compressor(model1), cached_model, _use_model_foreach=True)

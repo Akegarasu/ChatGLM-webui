@@ -67,6 +67,12 @@ if os.environ.get('RWKV_CUDA_ON') == '1':
 
 ########################################################################################################
 
+
+def no_device_info(str):
+    list = re.findall("(?:fp(?:16|32)|bf16)(?:i8|i4|i3)?", str)
+    return "".join(list)
+
+
 class RWKV(MyModule):
     def __init__(self, model, strategy, verbose = True):
         super().__init__()
@@ -103,7 +109,7 @@ class RWKV(MyModule):
                 ALREADY_CONVERTED = True
                 # assert convert_and_save_and_exit == None # you should only convert a raw model
                 prxxx(f"Converted model: strategy {w['_strategy']}, version {w['_version']}\n")
-                assert w['_strategy'] == args.strategy_string # if you are using a new strategy, re-convert the model
+                assert no_device_info(w['_strategy']) == no_device_info(args.strategy_string) # if you are using a new strategy, re-convert the model
                 assert float(w['_version']) >= 0.7 # sometimes you should re-convert using latest convert_model.py
                 assert w['_rescale_layer'] == self.RESCALE_LAYER
                 del w['_strategy']
