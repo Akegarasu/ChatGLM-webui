@@ -230,7 +230,7 @@ def create_ui():
                     if cmd_opts.model_type != "chatrwkv":
                         return "不是ChatRWKV模型"
                     ctx = myctx(ctx, sh)
-                    ctx.model_history.alpha_frequency = alpha_freq
+                    ctx.get_model_history().alpha_frequency = alpha_freq
                     ctx.model_history.alpha_presence = alpha_pres
                     ctx.model_history.top_k = top_k
                     return f"已保存"
