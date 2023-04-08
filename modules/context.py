@@ -1,7 +1,7 @@
 import json
 import os
 import time
-from typing import List, Tuple
+from typing import Tuple
 
 from modules.options import cmd_opts
 
@@ -35,6 +35,13 @@ class Context:
 
         self.state = STOPPED
 
+    # lazy init
+    def get_model_history(self):
+        if self.model_history is None:
+            from modules.model import model
+            self.model_history = model.create_context()
+        return self.model_history
+
     def interrupt_and_wait(self):
         # gradio发展神速啊
         self.interrupt()
@@ -44,9 +51,7 @@ class Context:
             print("等待其他线程终止")
 
     def infer_begin(self, query):
-        if self.model_history is None:
-            from modules.model import model
-            self.model_history = model.create_context()
+        self.get_model_history()
 
         self.interrupt_and_wait()
         self.state = LOOP
