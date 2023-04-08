@@ -55,10 +55,13 @@ class ChatGLMModel(Model):
     def infer(self, query: str, ctx,
               max_length: int, top_p: float, temperature: float):
         output_pos = 0
+        fn = self.model.stream_chat if ctx.chat else self.model.stream_generate
         try:
-            for output, _ in self.model.stream_chat(
+            for output, _ in fn(
                     self.tokenizer, query=query, history=ctx.history[0:-1],
-                    max_length=max_length,
+                    # transformer自己都说了建议使用这个（doge
+                    max_new_tokens=max_length,
+                    max_length=None,
                     top_p=top_p,
                     temperature=temperature
             ):

@@ -55,9 +55,10 @@ def clear_history(ctx, sh):
     return gr.update(value=[])
 
 
-def apply_max_round_click(ctx, sh, max_round):
+def apply_max_round_click(ctx, sh, max_round, chat_or_generate):
     ctx = myctx(ctx, sh)
     ctx.max_rounds = max_round
+    ctx.chat = chat_or_generate
     return f"设置了最大对话轮数 {ctx.max_rounds}"
 
 
@@ -77,18 +78,13 @@ def create_ui():
                 with gr.Row():
                     with gr.Column(variant="panel"):
                         with gr.Row():
-                            max_length = gr.Slider(minimum=8, maximum=4096, step=8, label='Max Length', value=2048)
+                            max_length = gr.Slider(minimum=8, maximum=2048, step=4, label='最大生成', value=2048)
+                        with gr.Row():
                             top_p = gr.Slider(minimum=0.01, maximum=1.0, step=0.01, label='Top P', value=0.7)
-                        with gr.Row():
-                            temperature = gr.Slider(minimum=0.01, maximum=1.0, step=0.01, label='Temperature', value=0.95)
-
-                        with gr.Row():
-                            max_rounds = gr.Slider(minimum=1, maximum=100, step=1, label="最大对话轮数", value=20)
-                            apply_max_rounds = gr.Button("✔", elem_id="del-btn")
+                            temperature = gr.Slider(minimum=0.05, maximum=5.0, step=0.01, label='Temperature', value=1)
 
                         cmd_output = gr.Textbox(label="Command Output")
                         with gr.Row():
-                            gr.Checkbox(label='流式输出（已弃用）', value=True)
                             shared_context = gr.Checkbox(label='共享上下文', value=False, visible=cmd_opts.shared_session)
                 with gr.Row():
                     with gr.Column(variant="panel"):
@@ -142,9 +138,40 @@ def create_ui():
         save_md_btn.click(lambda ctx, sh: myctx(ctx, sh).save_as_md(), inputs=[state, shared_context], outputs=[cmd_output])
         load_his_btn.upload(lambda ctx, sh, f: myctx(ctx, sh).load_history(f), inputs=[state, shared_context, load_his_btn], outputs=[chatbot])
         sync_his_btn.click(lambda ctx, sh: myctx(ctx, sh).rh, inputs=[state, shared_context], outputs=[chatbot])
-        apply_max_rounds.click(apply_max_round_click, inputs=[state, shared_context, max_rounds], outputs=[cmd_output])
 
     with gr.Blocks(css=css, analytics_enabled=False) as settings_interface:
+        with gr.Column():
+            with gr.Row():
+                gr.Label("通用")
+                max_rounds = gr.Slider(minimum=1, maximum=100, step=1, label="最大对话轮数", value=20)
+                apply_max_rounds = gr.Button("✔", elem_id="del-btn")
+                # 切换后建议手动清空对话...
+                chat_or_generate = gr.Checkbox(label='对话(关闭为续写)', value=True)
+
+            apply_max_rounds.click(apply_max_round_click, inputs=[state, shared_context, max_rounds, chat_or_generate], outputs=[cmd_output])
+
+        with gr.Column():
+            if cmd_opts.model_type == "chatrwkv":
+                with gr.Row():
+                    gr.Label("ChatRWKV相关")
+                    alpha_freq = gr.Slider(minimum=0, maximum=1, step=0.01, label='alpha frequency', value=0.5)
+                    alpha_pres = gr.Slider(minimum=0, maximum=1, step=0.01, label='alpha presence', value=0.5)
+                    top_k = gr.Slider(minimum=0, maximum=100, step=1, label='top_k', value=0)
+                    apply_rwkv_cfg = gr.Button("✔", elem_id="del-btn")
+
+                    def apply_rwkv_cfg_click(ctx, sh, alpha_freq, alpha_pres, top_k):
+                        ctx = myctx(ctx, sh)
+                        ctx.model_history.alpha_frequency = alpha_freq
+                        ctx.model_history.alpha_presence = alpha_pres
+                        ctx.model_history.top_k = top_k
+                        return f"已保存"
+
+                    apply_rwkv_cfg.click(apply_rwkv_cfg_click, inputs=[state, shared_context, alpha_freq, alpha_pres, top_k], outputs=[cmd_output])
+            pass
+
+        with gr.Column():
+            pass
+
         with gr.Row():
             reload_ui = gr.Button("重载界面")
 

@@ -230,7 +230,7 @@ class ChatRWKVModel(Model):
         ctx.temperature = temperature
         ctx.top_p = top_p
 
-        query = ctx.prepare_prompt(query)
+        query = ctx.prepare_prompt(query) if ctx.chat else query
 
         try:
             out_str = ''
