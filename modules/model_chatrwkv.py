@@ -86,6 +86,7 @@ class ChatRWKVContext(ModelContext):
         self.token_stop = [] if token_stop is None else token_stop  # stop generation whenever you see any token here
         self.token_not_repeat = [] if token_not_repeat is None else token_not_repeat
         self.states = []
+        self.last_token = None
         self.chunk_len = chunk_len  # split input into chunks to save VRAM (shorter -> slower)
 
         if prompt_file is not None and len(prompt_file):
@@ -168,20 +169,26 @@ class ChatRWKVModel(Model):
 
         self.model = load_cached_model(model_path, load, re.sub(r'[\\/:*?"<>[]', '_', no_device_info(precision)), lambda m: m.w, load).eval()
 
-    def encode(self, s: str):
+    def encode(self, s: str) -> list:
         return self.tokenizer.encode(s).ids
 
     def stream_generate(self, query, token_count=100, ctx: ChatRWKVContext = None):
         out_buffer = []
         tokens = self.encode(query)
+        if ctx.last_token is not None:
+            tokens.insert(0, ctx.last_token)
+        elif not tokens:
+            raise "请输入至少一个字!"
 
         occurrence = {}
         state = ctx.states[-1]
 
         for i in range(token_count):
-            while len(tokens):
+            while True:
                 out, state = self.model.forward(tokens[:ctx.chunk_len], state)
                 tokens = tokens[ctx.chunk_len:]
+                if not tokens:
+                    break
 
             for n in ctx.token_ban:
                 out[n] = NINF
@@ -205,6 +212,8 @@ class ChatRWKVModel(Model):
                 out[token] = NINF
 
             out_buffer.append(token)
+            ctx.last_token = token
+
             tokens = [token]
             if token not in occurrence:
                 occurrence[token] = 1
@@ -226,15 +235,15 @@ class ChatRWKVModel(Model):
     def infer(self, query: str,
               ctx,
               max_length: int, top_p: float, temperature: float):
-        ctx = ctx.model_history
-        ctx.temperature = temperature
-        ctx.top_p = top_p
+        mtctx = ctx.model_history
+        mtctx.temperature = temperature
+        mtctx.top_p = top_p
 
-        query = ctx.prepare_prompt(query) if ctx.chat else query
+        query = mtctx.prepare_prompt(query) if ctx.chat else query
 
         try:
             out_str = ''
-            for output in self.stream_generate(query, token_count=max_length, ctx=ctx):
+            for output in self.stream_generate(query, token_count=max_length, ctx=mtctx):
                 print(output, end='', flush=True)
 
                 out_str += output
