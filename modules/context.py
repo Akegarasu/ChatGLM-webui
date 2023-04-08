@@ -68,12 +68,12 @@ class Context:
             self.state = INTERRUPTED
 
     def infer_loop(self, output) -> bool:
+        query, _ = self.history[-1]
+        self.history[-1] = (query, output)
+        self.rh[-1] = (query, output)
+
         if self.state != LOOP:
             return True
-        else:
-            query, _ = self.history[-1]
-            self.history[-1] = (query, output)
-            self.rh[-1] = (query, output)
 
         return False
 
