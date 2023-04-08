@@ -1,7 +1,16 @@
+import torch
 from torch.cuda import get_device_properties
-from transformers import AutoModel, AutoTokenizer
+from transformers import AutoModel, AutoTokenizer, LogitsProcessor, LogitsProcessorList
 
 from modules.model import Model, load_cached_model
+
+
+class InvalidScoreLogitsProcessor(LogitsProcessor):
+    def __call__(self, input_ids: torch.LongTensor, scores: torch.FloatTensor) -> torch.FloatTensor:
+        if torch.isnan(scores).any() or torch.isinf(scores).any():
+            scores.zero_()
+            scores[..., 20005] = 5e4
+        return scores
 
 
 class ChatGLMModel(Model):
@@ -52,18 +61,48 @@ class ChatGLMModel(Model):
 
         self.model = model.eval()
 
+    @torch.no_grad()
+    def stream_chat_copy(self, query, history, max_new_tokens, top_p, temperature, chat, logits_processor=None, **kwargs):
+        if logits_processor is None:
+            logits_processor = LogitsProcessorList()
+        logits_processor.append(InvalidScoreLogitsProcessor())
+
+        # transformer自己都说了建议使用这个（doge
+        gen_kwargs = {"max_new_tokens": max_new_tokens, "do_sample": True, "top_p": top_p,
+                      "temperature": temperature, "logits_processor": logits_processor, **kwargs}
+
+        prompt = ""
+        if not history:
+            prompt = query
+        elif chat:
+            for i, (old_query, response) in enumerate(history):
+                prompt += "[Round {}]\n问：{}\n答：{}\n".format(i, old_query, response)
+            prompt += "[Round {}]\n问：{}\n答：".format(len(history), query)
+        else:
+            for (old_query, response) in enumerate(history):
+                prompt += old_query
+                prompt += response
+            prompt += query
+
+        input_ids = self.tokenizer([prompt], return_tensors="pt", padding=True)
+        input_ids = input_ids.to(self.model.device)
+
+        for outputs in self.model.stream_generate(**input_ids, **gen_kwargs):
+            outputs = outputs.tolist()[0][len(input_ids["input_ids"][0]):]
+            response = self.tokenizer.decode(outputs)
+            response = self.model.process_response(response)
+            yield response
+
     def infer(self, query: str, ctx,
               max_length: int, top_p: float, temperature: float):
         output_pos = 0
-        fn = self.model.stream_chat if ctx.chat else self.model.stream_generate
         try:
-            for output, _ in fn(
-                    self.tokenizer, query=query, history=ctx.history[0:-1],
-                    # transformer自己都说了建议使用这个（doge
+            for output in self.stream_chat_copy(
+                    query=query, history=ctx.history[0:-1],
                     max_new_tokens=max_length,
-                    max_length=None,
                     top_p=top_p,
-                    temperature=temperature
+                    temperature=temperature,
+                    chat=ctx.chat
             ):
                 print(output[output_pos:], end='', flush=True)
                 output_pos = len(output)
