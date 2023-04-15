@@ -119,6 +119,14 @@ def infer(query,
     if not model:
         raise "没有加载模型"
 
-    for output in model.infer(query, ctx, max_length, top_p, temperature):
-        yield output
-    torch_gc()
+    try:
+        for output in model.infer(query, ctx, max_length, top_p, temperature):
+            yield output
+    except Exception as e:  # GeneratorExit
+        import traceback
+        traceback.print_tb(e.__traceback__)
+        print(f"生成失败: {repr(e)}")
+    finally:
+        torch_gc()
+        # CRLF
+        print()

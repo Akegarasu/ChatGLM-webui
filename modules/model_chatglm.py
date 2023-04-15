@@ -80,8 +80,8 @@ class ChatGLMModel(Model):
             prompt += "[Round {}]\n问：{}\n答：".format(len(history), query)
         else:
             for (old_query, response) in enumerate(history):
-                prompt += old_query
-                prompt += response
+                prompt += str(old_query)
+                prompt += str(response)
             prompt += query
 
         input_ids = self.tokenizer([prompt], return_tensors="pt", padding=True)
@@ -96,18 +96,14 @@ class ChatGLMModel(Model):
     def infer(self, query: str, ctx,
               max_length: int, top_p: float, temperature: float):
         output_pos = 0
-        try:
-            for output in self.stream_chat_copy(
-                    query=query, history=ctx.history[0:-1],
-                    max_new_tokens=max_length,
-                    top_p=top_p,
-                    temperature=temperature,
-                    chat=ctx.chat
-            ):
-                print(output[output_pos:], end='', flush=True)
-                output_pos = len(output)
-                yield output
-        except Exception as e:
-            print(f"生成失败: {repr(e)}")
 
-        print()
+        for output in self.stream_chat_copy(
+                query=query, history=ctx.history[0:-1],
+                max_new_tokens=max_length,
+                top_p=top_p,
+                temperature=temperature,
+                chat=ctx.chat
+        ):
+            print(output[output_pos:], end='', flush=True)
+            output_pos = len(output)
+            yield output

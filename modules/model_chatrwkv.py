@@ -105,7 +105,7 @@ class ChatRWKVContext(ModelContext):
         if self.states:
             self.states.append(copy.deepcopy(self.states[-1]))
         else:
-            self.states.append(None)
+            self.states.append((None, None))
 
     def from_json(self, history):
         self.states.clear()
@@ -122,7 +122,7 @@ class ChatRWKVContext(ModelContext):
                 if len(tokens) == 0:
                     break
 
-            self.states.append(state)
+            self.states.append((state, None))
 
     def prepare_prompt(self, query: str):
         if self.init_prompt:
@@ -164,13 +164,15 @@ class ChatRWKVModel(Model):
     def stream_generate(self, query, token_count=100, ctx: ChatRWKVContext = None):
         out_buffer = []
         tokens = self.encode(query)
-        if ctx.last_token is not None:
-            tokens.insert(0, ctx.last_token)
+
+        token = ctx.states[-1][1]
+        if token is not None:
+            tokens.insert(0, token)
         elif not tokens:
             raise "请输入至少一个字!"
 
         occurrence = {}
-        state = ctx.states[-1]
+        state = ctx.states[-1][0]
 
         for i in range(token_count):
             while True:
@@ -183,6 +185,8 @@ class ChatRWKVModel(Model):
                 out[n] = NINF
             for n in occurrence:
                 out[n] -= (ctx.alpha_presence + occurrence[n] * ctx.alpha_frequency)
+            if token in ctx.token_not_repeat:
+                out[token] = NINF
 
             if ctx.init_prompt:  # adjust \n probability
                 if i <= 0:
@@ -194,13 +198,9 @@ class ChatRWKVModel(Model):
 
             # sampler
             token = sample_logits(out, temperature=ctx.temperature, top_p=ctx.top_p, top_k=ctx.top_k)
-            ctx.last_token = token
 
             if token in ctx.token_stop:
                 break
-
-            if token in ctx.token_not_repeat:
-                out[token] = NINF
 
             out_buffer.append(token)
 
@@ -213,14 +213,9 @@ class ChatRWKVModel(Model):
             # output
             tmp = self.tokenizer.decode(out_buffer)
             if '\ufffd' not in tmp:  # is valid utf-8 string?
-                yield tmp
-                ctx.states[-1] = state
+                ctx.states[-1] = (state, token)
                 out_buffer.clear()
-            else:
-                # for stop
-                yield ""
-
-        # yield "<长度限制,清空输入框并点击发送以继续>"
+                yield tmp
 
     def infer(self, query: str,
               ctx,
@@ -232,19 +227,13 @@ class ChatRWKVModel(Model):
         query = mtctx.prepare_prompt(query) if ctx.chat else query
 
         mtctx.token_stop = mtctx.chat_token_stop if ctx.chat else mtctx.original_token_stop
-        try:
-            out_str = ''
-            for output in self.stream_generate(query, token_count=max_length, ctx=mtctx):
-                print(output, end='', flush=True)
 
-                out_str += output
-                yield out_str
-        except Exception as e:
-            import traceback
-            traceback.print_tb(e.__traceback__)
-            print(f"生成失败: {repr(e)}")
+        out_str = ''
+        for output in self.stream_generate(query, token_count=max_length, ctx=mtctx):
+            print(output, end='', flush=True)
 
-        print()
+            out_str += output
+            yield out_str
 
     def create_context(self) -> ModelContext:
         # For alpha_frequency and alpha_presence, see "Frequency and presence penalties":
