@@ -32,6 +32,29 @@ def predict(ctx, query, max_length, top_p, temperature, use_stream_chat):
     ctx.refresh_last()
     yield ctx.rh, ""
 
+def regenerate(ctx, max_length, top_p, temperature, use_stream_chat):
+    if ctx.history and ctx.rh:
+        query = ctx.history[-1][0]
+        ctx.revoke()
+        ctx.limit_round()
+        ctx.limit_word()
+        flag = True
+        for _, output in infer(
+                query=query,
+                history=ctx.history,
+                max_length=max_length,
+                top_p=top_p,
+                temperature=temperature,
+                use_stream_chat=use_stream_chat
+        ):
+            if flag:
+                ctx.append(query, output)
+                flag = False
+            else:
+                ctx.update_last(query, output)
+            yield ctx.rh, ""
+        ctx.refresh_last()
+        yield ctx.rh, ""
 
 def clear_history(ctx):
     ctx.clear()
@@ -100,10 +123,24 @@ def create_ui():
 
                 with gr.Row():
                     revoke_btn = gr.Button("撤回")
+                
+                with gr.Row():
+                    regenerate_btn = gr.Button("重新生成")
 
         submit.click(predict, inputs=[
             state,
             input_message,
+            max_length,
+            top_p,
+            temperature,
+            use_stream_chat
+        ], outputs=[
+            chatbot,
+            input_message
+        ])
+
+        regenerate_btn.click(regenerate, inputs=[
+            state,
             max_length,
             top_p,
             temperature,
