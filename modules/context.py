@@ -107,5 +107,14 @@ class Context:
         self.rh = _readable_hist.copy()
         return self.rh
 
+    def edit_history(self, text, rnd_idx, obj_idx):
+        if obj_idx == 0:
+            self.history[rnd_idx] = (text, self.history[rnd_idx][1])
+            self.rh[rnd_idx] = (text, self.rh[rnd_idx][1])
+        elif obj_idx == 1:
+            ok = parse_codeblock(text)
+            self.history[rnd_idx] = (self.history[rnd_idx][0], text)
+            self.rh[rnd_idx] = (self.rh[rnd_idx][0], ok)
+        return self.rh
 
 ctx = Context()
