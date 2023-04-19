@@ -75,8 +75,11 @@ def infer(query,
         history = []
 
     output_pos = 0
-    if use_stream_chat:
-        try:
+    try:
+        print("---------------------------------------------------------------")
+        print(str(query))
+        print("===============================================================")
+        if use_stream_chat:
             for output, history in model.stream_chat(
                     tokenizer, query=query, history=history,
                     max_length=max_length,
@@ -86,18 +89,23 @@ def infer(query,
                 print(output[output_pos:], end='', flush=True)
                 output_pos = len(output)
                 yield query, output
-        except Exception as e:
-            print(f"Generation failed: {repr(e)}")
-    else:
-        output, history = model.chat(
-            tokenizer, query=query, history=history,
-            max_length=max_length,
-            top_p=top_p,
-            temperature=temperature
-        )
 
-        print(output)
-        yield query, output
+        else:
+            output, history = model.chat(
+                tokenizer, query=query, history=history,
+                max_length=max_length,
+                top_p=top_p,
+                temperature=temperature
+            )
+
+            print(output, end='')
+            yield query, output
+
+    except Exception as e:
+        print("")
+        print("***************************************************************")
+        print(f"Generation failed: {repr(e)}", end='')
 
     print()
     torch_gc()
+
