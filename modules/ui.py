@@ -13,6 +13,7 @@ _gradio_template_response_orig = gr.routes.templates.TemplateResponse
 
 def predict(ctx, query, max_length, top_p, temperature, use_stream_chat):
     ctx.limit_round()
+    ctx.limit_word()
     flag = True
     for _, output in infer(
             query=query,
@@ -39,8 +40,11 @@ def clear_history(ctx):
 
 def apply_max_round_click(ctx, max_round):
     ctx.max_rounds = max_round
-    return f"Applied: max round {ctx.max_rounds}"
+    return f"成功设置: 最大对话轮数 {ctx.max_rounds}"
 
+def apply_max_words_click(ctx, max_words):
+    ctx.max_words = max_words
+    return f"成功设置: 最大对话字数 {ctx.max_words}"
 
 def create_ui():
     reload_javascript()
@@ -63,7 +67,11 @@ def create_ui():
                             max_rounds = gr.Slider(minimum=1, maximum=100, step=1, label="最大对话轮数", value=20)
                             apply_max_rounds = gr.Button("✔", elem_id="del-btn")
 
-                        cmd_output = gr.Textbox(label="Command Output")
+                        with gr.Row():
+                            max_words = gr.Slider(minimum=4, maximum=4096, step=4, label='最大对话字数', value=2048)
+                            apply_max_words = gr.Button("✔", elem_id="del-btn")
+
+                        cmd_output = gr.Textbox(label="消息输出")
                         with gr.Row():
                             use_stream_chat = gr.Checkbox(label='使用流式输出', value=True)
                 with gr.Row():
@@ -112,6 +120,7 @@ def create_ui():
         load_his_btn.upload(lambda ctx, f: ctx.load_history(f), inputs=[state, load_his_btn], outputs=[chatbot])
         sync_his_btn.click(lambda ctx: ctx.rh, inputs=[state], outputs=[chatbot])
         apply_max_rounds.click(apply_max_round_click, inputs=[state, max_rounds], outputs=[cmd_output])
+        apply_max_words.click(apply_max_words_click, inputs=[state, max_words], outputs=[cmd_output])
 
     with gr.Blocks(css=css, analytics_enabled=False) as settings_interface:
         with gr.Row():
