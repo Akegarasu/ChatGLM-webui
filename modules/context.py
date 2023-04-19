@@ -26,6 +26,7 @@ class Context:
             self.history = []
         self.rh = []
         self.max_rounds = 20
+        self.max_words = 2048
 
     def append(self, query, output) -> str:
         # c: List[Tuple[str, str]]
@@ -63,6 +64,18 @@ class Context:
         elif hl > self.max_rounds:
             self.history = self.history[-self.max_rounds:]
             self.rh = self.rh[-self.max_rounds:]
+
+    def limit_word(self):
+        prompt = ""
+        for i, (old_query, response) in enumerate(self.history):
+            prompt += "[Round {}]\n问：{}\n答：{}\n".format(i, old_query, response)
+        while len(prompt) > self.max_words:
+            self.history.pop(0)
+            self.rh.pop(0)
+
+            prompt = ""
+            for i, (old_query, response) in enumerate(self.history):
+                prompt += "[Round {}]\n问：{}\n答：{}\n".format(i, old_query, response)
 
     def save_history(self):
         s = [{"q": i[0], "o": i[1]} for i in self.history]
