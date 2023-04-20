@@ -52,12 +52,29 @@ def load_model():
     if cmd_opts.ui_dev:
         return
 
-    from transformers import AutoModel, AutoTokenizer
+    from transformers import AutoConfig, AutoModel, AutoTokenizer
+    import os
+    import torch
 
     global tokenizer, model
 
+    # Load pretrained model and tokenizer
+    config = AutoConfig.from_pretrained(cmd_opts.model_path, trust_remote_code=True)
+    config.pre_seq_len = cmd_opts.pre_seq_len
+    config.prefix_projection = cmd_opts.prefix_projection
+
     tokenizer = AutoTokenizer.from_pretrained(cmd_opts.model_path, trust_remote_code=True)
-    model = AutoModel.from_pretrained(cmd_opts.model_path, trust_remote_code=True)
+    model = AutoModel.from_pretrained(cmd_opts.model_path, config=config, trust_remote_code=True)
+
+    if cmd_opts.ptuning_checkpoint is not None:
+        # Load ptuning weights
+        prefix_state_dict = torch.load(os.path.join(cmd_opts.ptuning_checkpoint, "pytorch_model.bin"))
+        new_prefix_state_dict = {}
+        for k, v in prefix_state_dict.items():
+            if k.startswith("transformer.prefix_encoder."):
+                new_prefix_state_dict[k[len("transformer.prefix_encoder."):]] = v
+
+        model.transformer.prefix_encoder.load_state_dict(new_prefix_state_dict)
     prepare_model()
 
 
