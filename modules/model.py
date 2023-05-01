@@ -19,7 +19,7 @@ def prepare_model():
         else:
             model = model.float()
     elif cmd_opts.mps:
-        model = model.float().to("mps")
+        model = model.half().to("mps")
     else:
         if cmd_opts.precision is None:
             total_vram_in_gb = get_device_properties(0).total_memory / 1e9
