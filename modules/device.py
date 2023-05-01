@@ -2,6 +2,7 @@ import torch
 from modules import options
 
 cpu = torch.device("cpu")
+mps = torch.device("mps")
 cuda_available = torch.cuda.is_available()
 
 
@@ -25,7 +26,15 @@ def torch_gc():
             torch.cuda.ipc_collect()
 
 
-device = cpu if options.cmd_opts.cpu else get_optimal_device()
-
-if not cuda_available:
-    print("CUDA is not available, using cpu mode...")
+if options.cmd_opts.cpu:
+    device = cpu
+    print("Using cpu mode...")
+elif options.cmd_opts.mps:
+    device = mps
+    print("Using mps acceleration...")
+else:
+    device = get_optimal_device()
+    if not cuda_available:
+        print("CUDA is not available, using cpu mode...")
+    else:
+        print("Using CUDA acceleration...")
