@@ -46,7 +46,8 @@ def main():
             server_name="0.0.0.0" if cmd_opts.listen else None,
             server_port=cmd_opts.port,
             share=cmd_opts.share,
-            prevent_thread_lock=True
+            prevent_thread_lock=True,
+            root_path=cmd_opts.path_prefix,
         )
         wait_on_server(ui)
         print('Restarting UI...')

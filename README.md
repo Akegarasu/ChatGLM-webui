@@ -50,3 +50,5 @@ python webui.py
 `--precision`: fp32(CPU only), fp16, int4(CUDA GPU only), int8(CUDA GPU only)
 
 `--cpu`: use cpu
+
+`--path-prefix`: url root path. If this parameter is not specified manually, the default value is `/`. Using a path prefix of `/foo/bar` enables ChatGLM-webui to serve from `http://$ip:$port/foo/bar/` rather than `http://$ip:$port/`.
