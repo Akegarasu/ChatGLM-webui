@@ -82,9 +82,9 @@ def create_ui():
                             save_md_btn = gr.Button("保存为 MarkDown")
 
             with gr.Column(scale=7):
-                chatbot = gr.Chatbot(elem_id="chat-box", show_label=False).style(height=800)
+                chatbot = gr.Chatbot(elem_id="chat-box", show_label=False, height=800)
                 with gr.Row():
-                    input_message = gr.Textbox(placeholder="输入你的内容...(按 Ctrl+Enter 发送)", show_label=False, lines=4, elem_id="chat-input").style(container=False)
+                    input_message = gr.Textbox(placeholder="输入你的内容...(按 Ctrl+Enter 发送)", show_label=False, lines=4, elem_id="chat-input", container=False)
                     clear_input = gr.Button("🗑️", elem_id="del-btn")
 
                 with gr.Row():
