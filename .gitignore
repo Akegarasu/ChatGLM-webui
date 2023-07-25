@@ -6,6 +6,7 @@ git/
 model/
 outputs/
 __pycache__/
+venv/
 .venv/
 
 test.py
